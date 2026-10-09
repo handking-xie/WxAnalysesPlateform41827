@@ -1,0 +1,1 @@
+ & '.\\x64 inject.exe' "C:\\Program Files\\Tencent\\Weixin\\Weixin.exe" ".\\libGLESv1.dll" "{'recivemode':'http','tcp_ip':'127.0.0.1','tcp_port':61108,'http_server_port':19088,'http_callback_url':'http://127.0.0.1:5000/api/recvMsg','usedefault':false,'start_server_while_login':true}"

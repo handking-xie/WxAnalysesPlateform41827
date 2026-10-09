@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "e6pkpoqK8XE=",
+  "success": true,
+  "projectFilePath": "D:\\WxHookSource41827\\WxApi.SetLabel\\WxApi.SetLabel.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Admin\\.nuget\\packages\\miniexcel\\1.46.0\\miniexcel.1.46.0.nupkg.sha512",
+    "C:\\Users\\Admin\\.nuget\\packages\\spectre.console\\0.57.2\\spectre.console.0.57.2.nupkg.sha512",
+    "C:\\Users\\Admin\\.nuget\\packages\\spectre.console.ansi\\0.57.2\\spectre.console.ansi.0.57.2.nupkg.sha512"
+  ],
+  "logs": []
+}

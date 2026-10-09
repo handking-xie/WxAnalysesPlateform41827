@@ -1,0 +1,26 @@
+方式一 tcp模式接收消息
+
+"x64 inject.exe" "D:\\Program Files\\Tencent\\4.1.5.30\\Weixin\\Weixin.exe" "C:\\Users\\Admin\\Desktop\\x64_41530\\libencode.dll" "{\"recivemode\":\"tcp\",\"tcp_ip\":\"127.0.0.1\",\"tcp_port\":61108,\"http_server_port\":19088,\"http_callback_url\":\"http://127.0.0.1:5000/api/recvMsg\",\"usedefault\":false,\"start_server_while_login\":true}"
+ 
+ 
+ 命令行参数
+ 
+ 微信路径 DLL路径 配置json
+
+
+方式2 http模式接收消息
+
+"x64 inject.exe" "D:\\Program Files\\Tencent\\4.1.5.30\\Weixin\\Weixin.exe" "C:\\Users\\Admin\\Desktop\\x64_41530\\libencode.dll" "{\"recivemode\":\"http\",\"tcp_ip\":\"127.0.0.1\",\"tcp_port\":61108,\"http_server_port\":19088,\"http_callback_url\":\"http://127.0.0.1:5000/api/recvMsg\",\"usedefault\":false,\"start_server_while_login\":true}"
+
+
+参数说明 recivemode  tcp/http
+
+http_server_port http_post端口号  根据端口号调用功能的
+
+http_callback_url http模式回调地址
+
+
+
+
+
+

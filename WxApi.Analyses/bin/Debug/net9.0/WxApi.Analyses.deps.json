@@ -1,0 +1,57 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "WxApi.Analyses/1.0.0": {
+        "dependencies": {
+          "MiniExcel": "1.46.0",
+          "ZstdSharp.Port": "0.8.8"
+        },
+        "runtime": {
+          "WxApi.Analyses.dll": {}
+        }
+      },
+      "MiniExcel/1.46.0": {
+        "runtime": {
+          "lib/net9.0/MiniExcel.dll": {
+            "assemblyVersion": "1.46.0.0",
+            "fileVersion": "1.46.0.0"
+          }
+        }
+      },
+      "ZstdSharp.Port/0.8.8": {
+        "runtime": {
+          "lib/net9.0/ZstdSharp.dll": {
+            "assemblyVersion": "0.8.8.0",
+            "fileVersion": "0.8.8.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "WxApi.Analyses/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MiniExcel/1.46.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-IMmli1Hc3/Axst8hcuUx30q/2HTKH2f3nmduiy59wvpth1u0881fZMEMAy4Inl3GBkdrVXA8UUpF5lyoWREdLQ==",
+      "path": "miniexcel/1.46.0",
+      "hashPath": "miniexcel.1.46.0.nupkg.sha512"
+    },
+    "ZstdSharp.Port/0.8.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UIDFkA5DC3en3tOJ3Mof11yBx9kUQLsaeo/oFdvN6Bbkr9E9+VCqfIadHci8cu+I51K2Sl7XYWVl2R/mA75NBQ==",
+      "path": "zstdsharp.port/0.8.8",
+      "hashPath": "zstdsharp.port.0.8.8.nupkg.sha512"
+    }
+  }
+}
