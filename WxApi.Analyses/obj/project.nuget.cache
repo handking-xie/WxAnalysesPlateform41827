@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ccI0DjRhqDs=",
+  "dgSpecHash": "Q2ldpj9fLw0=",
   "success": true,
-  "projectFilePath": "D:\\WxHookSource41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
+  "projectFilePath": "D:\\WxAnalysesPlateform41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Admin\\.nuget\\packages\\miniexcel\\1.46.0\\miniexcel.1.46.0.nupkg.sha512",
     "C:\\Users\\Admin\\.nuget\\packages\\zstdsharp.port\\0.8.8\\zstdsharp.port.0.8.8.nupkg.sha512"

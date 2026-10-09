@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Encodings.Web;
@@ -172,7 +172,7 @@ app.MapPost("/api/contacts/reload", (IContactService contactService) =>
 });
 
 
-// 10. 微信图片免鉴权代理服务 (携带微信客户端 UA 与防盗链穿透)
+// 10. 微信图片免鉴权代理服务 (携带原生 MicroMessenger Client UA、规格降级与本地缓存智能检索)
 app.MapMethods("/api/wechat/proxy-image", new[] { "GET", "HEAD" }, async (string url, IHttpClientFactory httpClientFactory) =>
 {
     if (string.IsNullOrWhiteSpace(url))
@@ -183,22 +183,100 @@ app.MapMethods("/api/wechat/proxy-image", new[] { "GET", "HEAD" }, async (string
     try
     {
         var decodedUrl = System.Net.WebUtility.UrlDecode(url);
-        var client = httpClientFactory.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(10);
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.95 Safari/537.36 MicroMessenger/4.0.0 NetType/WIFI WindowsWechat");
-        client.DefaultRequestHeaders.Add("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
 
-        var resp = await client.GetAsync(decodedUrl);
-        if (resp.IsSuccessStatusCode)
+        // 1. 尝试从本地微信客户端缓存检索 (微信 4.x xwechat_files 目录)
+        try
         {
-            var contentType = resp.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-            var bytes = await resp.Content.ReadAsByteArrayAsync();
-            return Results.File(bytes, contentType);
+            var userProfileDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var xWechatDir = Path.Combine(userProfileDir, "xwechat_files");
+            if (Directory.Exists(xWechatDir))
+            {
+                // 计算 URL 的 MD5
+                using var md5 = System.Security.Cryptography.MD5.Create();
+                var hashBytes = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(decodedUrl));
+                var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+                // 在最近 3 个月的 Sns 缓存中查找
+                var now = DateTime.Now;
+                var checkDirs = new[]
+                {
+                    now.ToString("yyyy-MM"),
+                    now.AddMonths(-1).ToString("yyyy-MM"),
+                    now.AddMonths(-2).ToString("yyyy-MM")
+                };
+
+                foreach (var userDir in Directory.GetDirectories(xWechatDir))
+                {
+                    foreach (var month in checkDirs)
+                    {
+                        var snsCacheDir = Path.Combine(userDir, "cache", month, "Sns", "Img");
+                        if (Directory.Exists(snsCacheDir))
+                        {
+                            var matchingFiles = Directory.GetFiles(snsCacheDir, $"*{hashHex.Substring(2, 8)}*", SearchOption.AllDirectories);
+                            if (matchingFiles.Length > 0)
+                            {
+                                var localBytes = await File.ReadAllBytesAsync(matchingFiles[0]);
+                                // 检查是否是标准 JPEG/PNG
+                                if (localBytes.Length > 3 && localBytes[0] == 0xFF && localBytes[1] == 0xD8 && localBytes[2] == 0xFF)
+                                {
+                                    return Results.File(localBytes, "image/jpeg");
+                                }
+                                if (localBytes.Length > 8 && localBytes[0] == 0x89 && localBytes[1] == 0x50 && localBytes[2] == 0x4E && localBytes[3] == 0x47)
+                                {
+                                    return Results.File(localBytes, "image/png");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+
+        // 2. 网络代理请求：按候选 URL 列表轮询 (含 /2000 超清 -> /150 缩略图 -> /0 原图自动降级)
+        var candidateUrls = new List<string> { decodedUrl };
+        if (decodedUrl.Contains(".qpic.cn/mmsns/") && decodedUrl.EndsWith("/2000"))
+        {
+            candidateUrls.Add(decodedUrl.Substring(0, decodedUrl.Length - 5) + "/150");
+            candidateUrls.Add(decodedUrl.Substring(0, decodedUrl.Length - 5) + "/0");
+        }
+        else if (decodedUrl.Contains(".qpic.cn/mmsns/") && decodedUrl.EndsWith("/0"))
+        {
+            candidateUrls.Add(decodedUrl.Substring(0, decodedUrl.Length - 2) + "/150");
+        }
+
+        var client = httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(8);
+
+        foreach (var reqUrl in candidateUrls)
+        {
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, reqUrl);
+                // 关键防盗链穿透：视频号与朋友圈必须采用原生 MicroMessenger Client UA
+                request.Headers.UserAgent.Clear();
+                request.Headers.TryAddWithoutValidation("User-Agent", "MicroMessenger Client");
+                request.Headers.TryAddWithoutValidation("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+                request.Headers.TryAddWithoutValidation("Referer", "https://servicewechat.com/");
+
+                var resp = await client.SendAsync(request);
+                if (resp.IsSuccessStatusCode)
+                {
+                    var contentType = resp.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+                    var bytes = await resp.Content.ReadAsByteArrayAsync();
+                    if (bytes.Length > 100) // 确保获取到真实图片
+                    {
+                        return Results.File(bytes, contentType);
+                    }
+                }
+            }
+            catch { }
         }
     }
     catch { }
 
-    var fallbackSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"200\" viewBox=\"0 0 200 200\"><rect width=\"200\" height=\"200\" fill=\"#f8fafc\"/><text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#cbd5e1\" font-family=\"sans-serif\" font-size=\"12\">图片加载中/暂无原图</text></svg>";
+    // 3. 优雅降级：返回高颜值防盗链安全占位图 (消除网页裂图)
+    var fallbackSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"280\" height=\"200\" viewBox=\"0 0 280 200\"><defs><linearGradient id=\"bg\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"#f1f5f9\"/><stop offset=\"100%\" stop-color=\"#e2e8f0\"/></linearGradient></defs><rect width=\"280\" height=\"200\" rx=\"10\" fill=\"url(#bg)\"/><circle cx=\"140\" cy=\"85\" r=\"28\" fill=\"#cbd5e1\"/><path d=\"M128 85a12 12 0 1 0 24 0 12 12 0 1 0 -24 0\" fill=\"#94a3b8\"/><path d=\"M132 72h16l4 5h8a6 6 0 0 1 6 6v18a6 6 0 0 1 -6 6h-40a6 6 0 0 1 -6 -6v-18a6 6 0 0 1 6 -6h8z\" fill=\"none\" stroke=\"#64748b\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><text x=\"50%\" y=\"135\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#64748b\" font-family=\"-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif\" font-size=\"12\" font-weight=\"600\">微信相册防盗链保护</text><text x=\"50%\" y=\"156\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#94a3b8\" font-family=\"-apple-system,BlinkMacSystemFont,PingFang SC,sans-serif\" font-size=\"11\">在微信电脑端打开即可同步缓存</text></svg>";
     return Results.Content(fallbackSvg, "image/svg+xml");
 });
 

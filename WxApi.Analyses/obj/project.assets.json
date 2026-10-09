@@ -76,11 +76,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\WxHookSource41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
+      "projectUniqueName": "D:\\WxAnalysesPlateform41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
       "projectName": "WxApi.Analyses",
-      "projectPath": "D:\\WxHookSource41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
+      "projectPath": "D:\\WxAnalysesPlateform41827\\WxApi.Analyses\\WxApi.Analyses.csproj",
       "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-      "outputPath": "D:\\WxHookSource41827\\WxApi.Analyses\\obj\\",
+      "outputPath": "D:\\WxAnalysesPlateform41827\\WxApi.Analyses\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -589,12 +589,36 @@
       gap: 6px;
       margin-bottom: 8px;
     }
+    .moments-grid-pics.single-pic {
+      display: block;
+    }
+    .moments-grid-pics.single-pic img {
+      width: auto;
+      max-width: 180px;
+      max-height: 180px;
+      height: auto;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #f8fafc;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .moments-grid-pics.single-pic img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
     .moments-grid-pics img {
       width: 85px;
       height: 85px;
       object-fit: cover;
       border-radius: 4px;
       background: #e2e8f0;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .moments-grid-pics img:hover {
+      transform: scale(1.03);
     }
     .moments-meta {
       display: flex;
@@ -1318,8 +1342,8 @@
               <div class="moments-author-name">${contact.name}</div>
               <div class="moments-text">${m.content}</div>
               ${m.images && m.images.length ? `
-                <div class="moments-grid-pics">
-                  ${m.images.map(img => `<img src="/api/wechat/proxy-image?url=${encodeURIComponent(img)}" alt="pic" loading="lazy" onclick="window.open('${img}', '_blank')">`).join('')}
+                <div class="moments-grid-pics ${m.images.length === 1 ? 'single-pic' : ''}">
+                  ${m.images.map(img => `<img src="/api/wechat/proxy-image?url=${encodeURIComponent(img)}" alt="微信相册图片" loading="lazy" onclick="window.open('${img}', '_blank')" title="点击查看原图" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\' viewBox=\'0 0 160 160\'><rect width=\'160\' height=\'160\' fill=\'%23f1f5f9\' rx=\'6\'/><circle cx=\'80\' cy=\'70\' r=\'20\' fill=\'%23cbd5e1\'/><path d=\'M72 70a8 8 0 1 0 16 0 8 8 0 1 0 -16 0\' fill=\'%2394a3b8\'/><text x=\'50%\' y=\'112\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\' font-size=\'11\' font-weight=\'600\' font-family=\'sans-serif\'>相册保护图</text><text x=\'50%\' y=\'130\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\' font-size=\'9\' font-family=\'sans-serif\'>请在微信内查看</text></svg>'">`).join('')}
                 </div>
               ` : ''}
               <div class="moments-meta">
