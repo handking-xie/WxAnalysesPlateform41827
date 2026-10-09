@@ -172,6 +172,85 @@
       color: #07c160;
     }
 
+    .excel-selector-group {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: all 0.2s;
+      height: 32px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .excel-selector-group:hover, .excel-selector-group:focus-within {
+      border-color: #07c160;
+      box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.15);
+    }
+    .excel-select-wrap {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      background: white;
+      height: 100%;
+    }
+    .excel-select {
+      height: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      max-width: 320px;
+      text-overflow: ellipsis;
+    }
+    .btn-reload-excel {
+      height: 100%;
+      padding: 0 12px;
+      background: #07c160;
+      color: white;
+      border: none;
+      border-left: 1px solid rgba(0,0,0,0.06);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-reload-excel:hover {
+      background: #06ad56;
+    }
+    .btn-reload-excel:active {
+      background: #058f46;
+    }
+    .btn-reload-excel:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .hook-url-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 10px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: monospace;
+      color: #0369a1;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
     /* 主界面布局 */
     .app-workspace {
       display: grid;
@@ -1019,10 +1098,28 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         查看本地文件
       </button>
-      <button class="btn-header" style="background:#07c160; color:white; border-color:#07c160;" onclick="refreshAllData()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        重新读取Excel
-      </button>
+      <!-- 动态微信Hook接口地址指示徽章 -->
+      <div id="hook-url-badge" class="hook-url-badge" title="当前连接的微信 Hook 接口服务地址">
+        🔗 Hook: 正在检测...
+      </div>
+      <!-- Excel 文件选择与重新读取组合 -->
+      <div class="excel-selector-group" title="选择 WxDatas 中的 Excel 透视表">
+        <div class="excel-select-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#07c160" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="16" y2="17"></line>
+          </svg>
+          <select id="excel-file-select" class="excel-select" onchange="onExcelFileChanged(this.value)">
+            <option value="">正在检索 WxDatas...</option>
+          </select>
+        </div>
+        <button id="btn-reload-excel" class="btn-reload-excel" onclick="refreshAllData()" title="重新读取当前选中的 Excel 文件">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          重新读取
+        </button>
+      </div>
     </div>
   </header>
 
@@ -1163,6 +1260,7 @@
 
     // 页面启动加载
     async function init() {
+      await loadExcelFiles();
       await fetchStats();
       await fetchContacts();
     }
@@ -1698,16 +1796,109 @@
       document.getElementById("storage-modal").classList.remove("open");
     }
 
-    // 8. 重新加载 Excel
-    async function refreshAllData() {
-      showToast("正在重新解析 Excel 并刷新缓存...", "info");
+    // 8. 获取 WxDatas 中的 Excel 文件列表并填充下拉框
+    async function loadExcelFiles() {
       try {
-        await fetch('/api/contacts/reload', { method: 'POST' });
+        const res = await fetch('/api/excel/files');
+        const data = await res.json();
+        const select = document.getElementById("excel-file-select");
+        if (!select) return;
+
+        if (data.currentHookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.currentHookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.currentHookUrl}`;
+          }
+        }
+
+        select.innerHTML = "";
+        if (!data.files || data.files.length === 0) {
+          select.innerHTML = '<option value="">(WxDatas 目录无 Excel 文件)</option>';
+          return;
+        }
+
+        data.files.forEach(f => {
+          const opt = document.createElement("option");
+          opt.value = f.fileName;
+          opt.dataset.hook = f.hookUrl || '';
+          opt.textContent = `${f.fileName}  [${f.hookUrl || ''}]`;
+          opt.title = `文件名: ${f.fileName}\n对应Hook接口: ${f.hookUrl}\n文件大小: ${f.fileSizeFormatted}\n修改时间: ${f.lastModifiedFormatted || f.lastModified}`;
+          if (f.isCurrent || f.fileName === data.currentFile) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("加载 Excel 文件列表异常:", err);
+      }
+    }
+
+    // 9. 响应下拉切换指定 Excel 文件
+    async function onExcelFileChanged(fileName) {
+      if (!fileName) return;
+      showToast(`正在切换并载入【${fileName}】...`, "info");
+      const reloadBtn = document.getElementById("btn-reload-excel");
+      if (reloadBtn) reloadBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/excel/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: fileName })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "切换 Excel 失败");
+        }
+        if (data.hookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.hookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.hookUrl}`;
+          }
+        }
+        currentIndex = 0;
         await fetchStats();
         await fetchContacts();
-        showToast("Excel 刷新成功！", "success");
+        showToast(`🎉 成功载入【${fileName}】\n对接 Hook 接口 -> ${data.hookUrl}（共 ${data.totalContacts} 人）`, "success");
+      } catch (err) {
+        showToast("切换失败: " + err.message, "warning");
+      } finally {
+        if (reloadBtn) reloadBtn.disabled = false;
+      }
+    }
+
+    // 10. 重新加载当前选中的 Excel
+    async function refreshAllData() {
+      const select = document.getElementById("excel-file-select");
+      const selectedFileName = select ? select.value : "";
+      showToast("正在重新解析 Excel 并刷新缓存...", "info");
+      const reloadBtn = document.getElementById("btn-reload-excel");
+      if (reloadBtn) reloadBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/contacts/reload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: selectedFileName })
+        });
+        const data = await res.json();
+        if (data.hookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.hookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.hookUrl}`;
+          }
+        }
+        await loadExcelFiles();
+        await fetchStats();
+        await fetchContacts();
+        showToast(`Excel 刷新成功！共 ${data.totalContacts || 0} 位意向好友 (Hook: ${data.hookUrl})`, "success");
       } catch (err) {
         showToast("刷新失败: " + err.message, "warning");
+      } finally {
+        if (reloadBtn) reloadBtn.disabled = false;
       }
     }
 

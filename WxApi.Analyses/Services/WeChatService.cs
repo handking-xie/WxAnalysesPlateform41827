@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,19 +23,87 @@ public interface IWeChatService
     Task<(List<MomentItem> Moments, string? Cover, string? SnsNotice)> GetMomentsAsync(ContactItem contact);
     Task<(bool Success, string Message)> SendMessageAsync(string wxid, string text);
     Task<(bool Success, string Message)> TriggerSnsSyncAsync(string wxid);
+    string GetHookApiBaseUrl();
+    string ResolveHookApiUrl(string? fileNameOrPath);
 }
 
 public class WeChatService : IWeChatService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _hookBaseUrl;
+    private readonly IConfiguration _config;
+    private readonly IContactService _contactService;
     private readonly ILogger<WeChatService> _logger;
 
-    public WeChatService(HttpClient httpClient, IConfiguration config, ILogger<WeChatService> logger)
+    public WeChatService(HttpClient httpClient, IConfiguration config, IContactService contactService, ILogger<WeChatService> logger)
     {
         _httpClient = httpClient;
+        _config = config;
+        _contactService = contactService;
         _logger = logger;
-        _hookBaseUrl = config["AppConfig:WeChatHookUrl"]?.TrimEnd('/') ?? "http://127.0.0.1:19088";
+        _httpClient.Timeout = TimeSpan.FromSeconds(6);
+    }
+
+    public string GetHookApiBaseUrl()
+    {
+        var currentExcel = _contactService.GetCurrentExcelFilePath();
+        return ResolveHookApiUrl(currentExcel);
+    }
+
+    public string ResolveHookApiUrl(string? fileNameOrPath)
+    {
+        if (string.IsNullOrWhiteSpace(fileNameOrPath))
+        {
+            return GetDefaultHookUrl();
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(fileNameOrPath);
+
+        // 默认映射字典 (根据用户指定配置)
+        var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "samuelsurry", "http://127.0.0.1:19088/api" },
+            { "xmwking", "http://127.0.0.1:19088/api" },
+            { "aixian19920303", "http://192.168.1.9:19088/api" },
+            { "aweihub", "http://192.168.100.121:19088/api" },
+            { "xuanchen2020", "http://192.168.100.122:19088/api" },
+            { "handkingxie", "http://192.168.100.123:19088/api" },
+            { "xuanchen-xie", "http://192.168.100.124:19088/api" }
+        };
+
+        // 从 appsettings.json 中读取自定义配置覆盖
+        var configSection = _config.GetSection("AppConfig:AccountHookUrls");
+        foreach (var child in configSection.GetChildren())
+        {
+            if (!string.IsNullOrWhiteSpace(child.Key) && !string.IsNullOrWhiteSpace(child.Value))
+            {
+                var val = child.Value.TrimEnd('/');
+                if (!val.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    val += "/api";
+                }
+                mapping[child.Key] = val;
+            }
+        }
+
+        foreach (var kv in mapping)
+        {
+            if (fileName.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                return kv.Value.TrimEnd('/');
+            }
+        }
+
+        return GetDefaultHookUrl();
+    }
+
+    private string GetDefaultHookUrl()
+    {
+        var configured = _config["AppConfig:WeChatHookUrl"]?.TrimEnd('/') ?? "http://127.0.0.1:19088";
+        if (!configured.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+        {
+            configured += "/api";
+        }
+        return configured;
     }
 
     /// <summary>
@@ -70,7 +138,7 @@ public class WeChatService : IWeChatService
                     sql_fmt = sql
                 };
 
-                var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/sqlite3_exec", dbPayload);
+                var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/sqlite3_exec", dbPayload);
                 if (!resp.IsSuccessStatusCode) continue;
 
                 var json = await resp.Content.ReadAsStringAsync();
@@ -174,7 +242,7 @@ public class WeChatService : IWeChatService
                 maxId = "0"
             };
 
-            var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/sns_get_user_page2", reqPayload);
+            var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/sns_get_user_page2", reqPayload);
             if (resp.IsSuccessStatusCode)
             {
                 var json = await resp.Content.ReadAsStringAsync();
@@ -248,7 +316,7 @@ public class WeChatService : IWeChatService
                     sql_fmt = sql
                 };
 
-                var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/sqlite3_exec", dbPayload);
+                var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/sqlite3_exec", dbPayload);
                 if (resp.IsSuccessStatusCode)
                 {
                     var json = await resp.Content.ReadAsStringAsync();
@@ -284,7 +352,7 @@ public class WeChatService : IWeChatService
         try
         {
             var payload = new { wxid = wxid, msg = text };
-            var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/send_text_msg", payload);
+            var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/send_text_msg", payload);
             if (resp.IsSuccessStatusCode)
             {
                 var content = await resp.Content.ReadAsStringAsync();
@@ -304,7 +372,7 @@ public class WeChatService : IWeChatService
         try
         {
             var payload = new { to_wxid = wxid, firstPageMd5 = "", maxId = "0" };
-            var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/sns_get_user_page2", payload);
+            var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/sns_get_user_page2", payload);
             return (true, "已向微信发送拉取朋友圈相册请求，微信后台将异步刷新");
         }
         catch (Exception ex)
@@ -320,7 +388,7 @@ public class WeChatService : IWeChatService
         var dbs = new List<string>();
         try
         {
-            var resp = await _httpClient.PostAsJsonAsync($"{_hookBaseUrl}/api/get_db_handle", new { });
+            var resp = await _httpClient.PostAsJsonAsync($"{GetHookApiBaseUrl()}/get_db_handle", new { });
             if (resp.IsSuccessStatusCode)
             {
                 var json = await resp.Content.ReadAsStringAsync();

@@ -164,11 +164,83 @@ app.MapPost("/api/wechat/sync-moments", async (string wxid, IWeChatService weCha
     return Results.Ok(new { success, message = msg });
 });
 
-// 9. 重新刷新 Excel 缓存
-app.MapPost("/api/contacts/reload", (IContactService contactService) =>
+// 9. 获取 WxDatas 中的所有 Excel 文件列表
+app.MapGet("/api/excel/files", (IContactService contactService, IWeChatService weChatService) =>
 {
-    contactService.ReloadCache();
-    return Results.Ok(new { success = true, message = "已重新加载 Excel 缓存" });
+    var files = contactService.GetAvailableExcelFiles();
+    var currentPath = contactService.GetCurrentExcelFilePath();
+    var currentName = Path.GetFileName(currentPath);
+    var dir = contactService.GetWxDatasDirectory();
+    var currentHook = weChatService.GetHookApiBaseUrl();
+
+    foreach (var f in files)
+    {
+        f.HookUrl = weChatService.ResolveHookApiUrl(f.FileName);
+        f.AccountKey = ContactService.ExtractAccountKey(f.FileName);
+    }
+    return Results.Ok(new
+    {
+        success = true,
+        directory = dir,
+        currentFile = currentName,
+        currentPath = currentPath,
+        currentHookUrl = currentHook,
+        files = files
+    });
+});
+
+// 10. 选择并加载指定的 Excel 文件
+app.MapPost("/api/excel/select", async (SelectExcelRequest req, IContactService contactService, IWeChatService weChatService) =>
+{
+    var target = !string.IsNullOrWhiteSpace(req.FileName) ? req.FileName : req.FilePath;
+    if (string.IsNullOrWhiteSpace(target))
+    {
+        return Results.BadRequest(new { message = "必须提供文件名或文件路径" });
+    }
+
+    try
+    {
+        contactService.SwitchExcelFile(target);
+        var total = await contactService.GetTotalCountAsync();
+        var currentFile = Path.GetFileName(contactService.GetCurrentExcelFilePath());
+        var hookUrl = weChatService.GetHookApiBaseUrl();
+        return Results.Ok(new
+        {
+            success = true,
+            currentFile = currentFile,
+            hookUrl = hookUrl,
+            totalContacts = total,
+            message = $"已成功加载 Excel：{currentFile}，对接微信 Hook 接口：{hookUrl}，共有 {total} 位意向好友"
+        });
+    }
+    catch (FileNotFoundException ex)
+    {
+        return Results.NotFound(new { message = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, title: "加载 Excel 失败");
+    }
+});
+
+// 11. 重新刷新 Excel 缓存
+app.MapPost("/api/contacts/reload", async (HttpContext httpContext, IContactService contactService, IWeChatService weChatService) =>
+{
+    string? fileName = null;
+    if (httpContext.Request.HasJsonContentType())
+    {
+        try
+        {
+            var body = await httpContext.Request.ReadFromJsonAsync<SelectExcelRequest>();
+            fileName = body?.FileName ?? body?.FilePath;
+        }
+        catch { }
+    }
+    contactService.ReloadCache(fileName);
+    var currentFile = Path.GetFileName(contactService.GetCurrentExcelFilePath());
+    var total = await contactService.GetTotalCountAsync();
+    var hookUrl = weChatService.GetHookApiBaseUrl();
+    return Results.Ok(new { success = true, currentFile = currentFile, hookUrl = hookUrl, totalContacts = total, message = $"已重新加载 Excel：{currentFile}，对接微信 Hook 接口：{hookUrl}，共有 {total} 位意向好友" });
 });
 
 

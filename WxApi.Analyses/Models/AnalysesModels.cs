@@ -121,3 +121,23 @@ public class SaveAiTrainingSampleRequest
     public string? PainPoint { get; set; }
     public string? Profile { get; set; }
 }
+
+public class ExcelFileInfo
+{
+    public string FileName { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string FileSizeFormatted { get; set; } = string.Empty;
+    public DateTime LastModified { get; set; }
+    public string LastModifiedFormatted => LastModified.ToString("yyyy-MM-dd HH:mm:ss");
+    public bool IsCurrent { get; set; }
+    public string HookUrl { get; set; } = string.Empty;
+    public string AccountKey { get; set; } = string.Empty;
+}
+
+public class SelectExcelRequest
+{
+    public string? FileName { get; set; }
+    public string? FilePath { get; set; }
+}
+

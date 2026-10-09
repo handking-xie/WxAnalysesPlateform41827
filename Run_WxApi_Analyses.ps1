@@ -11,7 +11,10 @@ $port = 5288
 $tcp = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
 if ($tcp) {
     Write-Host "端口 $port 正在被使用，正在尝试释放..." -ForegroundColor Yellow
-    Get-Process -Id $tcp.OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force
+    $pids = $tcp | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 4 }
+    foreach ($p in $pids) {
+        Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # 启动浏览器
