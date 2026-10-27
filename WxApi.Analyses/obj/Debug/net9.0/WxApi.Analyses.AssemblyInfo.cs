@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WxApi.Analyses")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a0d908f1495800755439e35d268c9e4ef9be5c5d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a4fa5c69ca094ddcc521adb71900bffa4cac05d")]
 [assembly: System.Reflection.AssemblyProductAttribute("WxApi.Analyses")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WxApi.Analyses")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

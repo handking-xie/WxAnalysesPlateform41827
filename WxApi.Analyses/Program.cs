@@ -16,12 +16,17 @@ var builder = WebApplication.CreateBuilder(args);
 // 配置控制台编码
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-// 注册 HTTP 客户端与业务服务
-builder.Services.AddHttpClient();
+// 注册 HTTP 客户端与业务服务 (禁用系统代理，确保局域网与本地 Hook 19088 直连毫秒级响应)
+builder.Services.AddHttpClient("", client => { })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        UseProxy = false
+    });
 builder.Services.AddSingleton<IStorageService, StorageService>();
 builder.Services.AddSingleton<IContactService, ContactService>();
 builder.Services.AddSingleton<IWeChatService, WeChatService>();
 builder.Services.AddSingleton<IAiAnalysisService, AiAnalysisService>();
+builder.Services.AddSingleton<ICvService, CvService>();
 
 builder.Services.AddCors(options =>
 {
@@ -55,13 +60,16 @@ app.MapGet("/api/contacts/{wxid}/detail", async (string wxid, IContactService co
         return Results.NotFound(new { message = $"未找到 wxid 为 {wxid} 的好友" });
     }
 
-    // 并行获取聊天记录与朋友圈
-    var chatTask = weChatService.GetChatHistoryAsync(contact);
-    var momentsTask = weChatService.GetMomentsAsync(contact);
-    await Task.WhenAll(chatTask, momentsTask);
+    // 1. 优先解析真实内部微信ID (处理自定义微信号别名)
+    var realWxid = await weChatService.ResolveRealWxidAsync(contact.Wxid);
+    if (!string.IsNullOrWhiteSpace(realWxid))
+    {
+        contact.RealWxid = realWxid;
+    }
 
-    var chatHistory = await chatTask;
-    var (moments, coverUrl, snsNotice) = await momentsTask;
+    // 2. 优先毫秒级读取本地数据库聊天记录，随后异步拉取朋友圈 (避免 Hook 阻塞)
+    var chatHistory = await weChatService.GetChatHistoryAsync(contact);
+    var (moments, coverUrl, snsNotice) = await weChatService.GetMomentsAsync(contact);
 
     if (!string.IsNullOrWhiteSpace(coverUrl))
     {
@@ -162,6 +170,147 @@ app.MapPost("/api/wechat/sync-moments", async (string wxid, IWeChatService weCha
 {
     var (success, msg) = await weChatService.TriggerSnsSyncAsync(wxid);
     return Results.Ok(new { success, message = msg });
+});
+
+// 8.1 获取微信朋友圈首页时间线 (sns_get_first_page)
+app.MapGet("/api/moments/first-page", async (IWeChatService weChatService, IContactService contactService) =>
+{
+    var (moments, firstPageMd5, session) = await weChatService.GetFirstPageMomentsAsync();
+
+    // 匹配发布者联系人头像和评级信息
+    foreach (var m in moments)
+    {
+        if (!string.IsNullOrWhiteSpace(m.UserName))
+        {
+            var contact = await contactService.GetContactByWxidAsync(m.UserName);
+            if (contact != null)
+            {
+                if (string.IsNullOrWhiteSpace(m.Avatar)) m.Avatar = contact.Avatar;
+                if (string.IsNullOrWhiteSpace(m.Nickname)) m.Nickname = contact.Name;
+                m.Tier = contact.Tier;
+                m.Remark = contact.Remark;
+            }
+        }
+    }
+
+    return Results.Ok(new
+    {
+        success = true,
+        moments = moments,
+        firstPageMd5 = firstPageMd5,
+        session = session
+    });
+});
+
+// 8.1.1 获取微信朋友圈下一页时间线 (sns_get_next_page)
+app.MapPost("/api/moments/next-page", async (SnsNextPageRequest req, IWeChatService weChatService, IContactService contactService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.LastItemId))
+    {
+        return Results.BadRequest(new { success = false, message = "必须提供 lastItemId" });
+    }
+
+    var (moments, nextSession, md5) = await weChatService.GetNextPageMomentsAsync(req.LastItemId, req.FirstPageMd5, req.Session);
+
+    foreach (var m in moments)
+    {
+        if (!string.IsNullOrWhiteSpace(m.UserName))
+        {
+            var contact = await contactService.GetContactByWxidAsync(m.UserName);
+            if (contact != null)
+            {
+                if (string.IsNullOrWhiteSpace(m.Avatar)) m.Avatar = contact.Avatar;
+                if (string.IsNullOrWhiteSpace(m.Nickname)) m.Nickname = contact.Name;
+                m.Tier = contact.Tier;
+                m.Remark = contact.Remark;
+            }
+        }
+    }
+
+    return Results.Ok(new
+    {
+        success = true,
+        moments = moments,
+        session = nextSession,
+        firstPageMd5 = md5,
+        hasMore = moments.Count > 0
+    });
+});
+
+// 8.2 触发朋友圈首页同步刷新
+app.MapPost("/api/wechat/sync-first-page-moments", async (IWeChatService weChatService) =>
+{
+    var (moments, firstPageMd5, session) = await weChatService.GetFirstPageMomentsAsync();
+    return Results.Ok(new
+    {
+        success = true,
+        message = $"朋友圈首页刷新完成 (获取 {moments.Count} 条动态)",
+        count = moments.Count,
+        firstPageMd5 = firstPageMd5,
+        session = session
+    });
+});
+
+// 8.3 朋友圈点赞 (sns_like)
+app.MapPost("/api/wechat/moments/like", async (SnsLikeRequest req, IWeChatService weChatService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.SnsId))
+    {
+        return Results.BadRequest(new { success = false, message = "必须提供 sns_id" });
+    }
+    var (success, msg) = await weChatService.SnsLikeAsync(req.SnsId, req.ToWxid);
+    return Results.Ok(new { success, message = msg });
+});
+
+// 8.4 取消朋友圈点赞 (sns_unlike)
+app.MapPost("/api/wechat/moments/unlike", async (SnsLikeRequest req, IWeChatService weChatService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.SnsId))
+    {
+        return Results.BadRequest(new { success = false, message = "必须提供 sns_id" });
+    }
+    var (success, msg) = await weChatService.SnsUnlikeAsync(req.SnsId, req.ToWxid);
+    return Results.Ok(new { success, message = msg });
+});
+
+// 8.5 发表朋友圈一级评论 (sns_do_comment)
+app.MapPost("/api/wechat/moments/comment", async (SnsCommentRequest req, IWeChatService weChatService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.SnsId) || string.IsNullOrWhiteSpace(req.Comment))
+    {
+        return Results.BadRequest(new { success = false, message = "sns_id 和 comment 不能为空" });
+    }
+    var (success, msg, commentId) = await weChatService.SnsDoCommentAsync(req.SnsId, req.ToWxid, req.Comment);
+    return Results.Ok(new { success, message = msg, commentId });
+});
+
+// 8.6 朋友圈回复评论 (sns_comment_reply)
+app.MapPost("/api/wechat/moments/reply", async (SnsReplyRequest req, IWeChatService weChatService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.SnsId) || string.IsNullOrWhiteSpace(req.Content))
+    {
+        return Results.BadRequest(new { success = false, message = "sns_id 和 content 不能为空" });
+    }
+    var (success, msg) = await weChatService.SnsCommentReplyAsync(req.SnsId, req.CommentId, req.Content);
+    return Results.Ok(new { success, message = msg });
+});
+
+// 8.7 删除朋友圈评论 (sns_del_comment)
+app.MapPost("/api/wechat/moments/delete-comment", async (SnsDeleteCommentRequest req, IWeChatService weChatService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.SnsId) || string.IsNullOrWhiteSpace(req.CommentId))
+    {
+        return Results.BadRequest(new { success = false, message = "sns_id 和 commentId 不能为空" });
+    }
+    var (success, msg) = await weChatService.SnsDelCommentAsync(req.SnsId, req.CommentId);
+    return Results.Ok(new { success, message = msg });
+});
+
+// 8.8 获取当前登录微信 Profile
+app.MapGet("/api/wechat/my-profile", async (IWeChatService weChatService) =>
+{
+    var (wxid, nickname) = await weChatService.GetMyProfileAsync();
+    return Results.Ok(new { success = true, wxid, nickname });
 });
 
 // 9. 获取 WxDatas 中的所有 Excel 文件列表
@@ -389,4 +538,48 @@ app.MapGet("/api/ai/training-data", async (IStorageService storageService) =>
     });
 });
 
+// 13. 获取好友详细资料 (get_contact_fast) 与 D:\CVs 匹配简历 (生成图2 Popup 弹窗数据)
+app.MapGet("/api/contacts/{wxid}/cv-profile", async (string wxid, string? filePath, IContactService contactService, IWeChatService weChatService, ICvService cvService) =>
+{
+    // 1. 调用 Hook /api/get_contact_fast 获取好友底层实时详细资料 (含微信号、手机、备注、头像等)
+    var fastInfo = await weChatService.GetContactFastAsync(wxid);
+    var contact = await contactService.GetContactByWxidAsync(wxid);
+
+    // 2. 在 D:\CVs 中根据 手机号 (如 18621284870) / userName / remark 等匹配并解析简历
+    var cvResult = await cvService.FindAndParseCvAsync(fastInfo, contact, filePath);
+    return Results.Ok(cvResult);
+});
+
+// 14. 打开本地简历原件 (Windows 系统默认打开程序)
+app.MapPost("/api/cv/open", (OpenFileRequest req, ICvService cvService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.FilePath)) return Results.BadRequest(new { message = "文件路径不能为空" });
+    var success = cvService.OpenCvFile(req.FilePath);
+    return Results.Ok(new { success, message = success ? "已成功在系统默认程序中打开简历" : "打开文件失败，请检查路径是否存在" });
+});
+
+// 15. 在 Windows 资源管理器中高亮定位简历文件
+app.MapPost("/api/cv/explore", (OpenFileRequest req, ICvService cvService) =>
+{
+    if (string.IsNullOrWhiteSpace(req.FilePath)) return Results.BadRequest(new { message = "文件路径不能为空" });
+    var success = cvService.ExploreCvFile(req.FilePath);
+    return Results.Ok(new { success, message = success ? "已在资源管理器中定位文件" : "定位失败" });
+});
+
+// 16. 下载/流式预览简历文件
+app.MapGet("/api/cv/download", (string filePath, ICvService cvService) =>
+{
+    var fileData = cvService.GetCvFileBytes(filePath);
+    if (fileData == null) return Results.NotFound(new { message = "文件不存在" });
+    return Results.File(fileData.Value.Bytes, fileData.Value.ContentType, fileData.Value.FileName);
+});
+
+// 17. 快速搜索 D:\CVs 库
+app.MapGet("/api/cv/search", (string query, ICvService cvService) =>
+{
+    var list = cvService.SearchCvFiles(query);
+    return Results.Ok(new { query, total = list.Count, data = list });
+});
+
 app.Run("http://localhost:5288");
+

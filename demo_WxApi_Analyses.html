@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>WxApi.Analyses - 微信好友微创业意向全景分析工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=PingFang+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary-green: #07c160;
@@ -171,6 +175,85 @@
       color: #07c160;
     }
 
+    .excel-selector-group {
+      display: flex;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #d1d5db;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: all 0.2s;
+      height: 32px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .excel-selector-group:hover, .excel-selector-group:focus-within {
+      border-color: #07c160;
+      box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.15);
+    }
+    .excel-select-wrap {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      background: white;
+      height: 100%;
+    }
+    .excel-select {
+      height: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      max-width: 320px;
+      text-overflow: ellipsis;
+    }
+    .btn-reload-excel {
+      height: 100%;
+      padding: 0 12px;
+      background: #07c160;
+      color: white;
+      border: none;
+      border-left: 1px solid rgba(0,0,0,0.06);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-reload-excel:hover {
+      background: #06ad56;
+    }
+    .btn-reload-excel:active {
+      background: #058f46;
+    }
+    .btn-reload-excel:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .hook-url-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 10px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: monospace;
+      color: #0369a1;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
     /* 主界面布局 */
     .app-workspace {
       display: grid;
@@ -181,7 +264,7 @@
       background: #eaedf1;
     }
 
-    /* ================= 1. 左侧好友列表栏 ================= */
+    /* 1. 左侧好友列表栏 */
     .contacts-sidebar {
       background: #ffffff;
       border-right: 1px solid var(--border-color);
@@ -346,7 +429,7 @@
       text-overflow: ellipsis;
     }
 
-    /* ================= 2. 中间多维视角（聊天 + 朋友圈） ================= */
+    /* 2. 中间多维视角（聊天 + 朋友圈） */
     .center-workspace {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -358,7 +441,6 @@
       overflow: hidden;
     }
 
-    /* 微信聊天框区 */
     .chat-view-panel {
       display: flex;
       flex-direction: column;
@@ -409,15 +491,6 @@
       flex-direction: column;
       gap: 16px;
       background: #f3f4f6;
-    }
-
-    .time-divider {
-      align-self: center;
-      font-size: 11px;
-      color: #9ca3af;
-      background: rgba(0,0,0,0.04);
-      padding: 2px 10px;
-      border-radius: 10px;
     }
 
     .chat-message-row {
@@ -476,17 +549,6 @@
       border-top-right-radius: 2px;
     }
 
-    .msg-bubble.image-card {
-      padding: 4px;
-      background: white;
-    }
-    .msg-bubble img.chat-inline-img {
-      max-width: 180px;
-      max-height: 180px;
-      border-radius: 4px;
-      display: block;
-    }
-
     .chat-composer-box {
       flex-shrink: 0;
       background: #ffffff;
@@ -517,7 +579,7 @@
       align-items: center;
     }
 
-    /* 微信朋友圈区 (Moments) */
+    /* 微信朋友圈区 */
     .moments-view-panel {
       display: flex;
       flex-direction: column;
@@ -541,12 +603,14 @@
       position: relative;
       background: linear-gradient(135deg, #374151, #1e293b);
       margin-bottom: 40px;
+      z-index: 5;
     }
     .cover-bg {
       width: 100%;
       height: 100%;
       object-fit: cover;
       opacity: 0.85;
+      pointer-events: none;
     }
     .user-profile-badge {
       position: absolute;
@@ -555,22 +619,77 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      z-index: 100;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .user-profile-badge:hover {
+      background: rgba(15, 23, 42, 0.75);
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.25);
+      transform: translateY(-2px);
     }
     .moments-user-name {
       color: #ffffff;
       font-size: 15px;
       font-weight: 700;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-      margin-bottom: 8px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .moments-user-name .sub-hint {
+      font-size: 10px;
+      font-weight: 500;
+      color: #38bdf8;
+      letter-spacing: 0.2px;
+      margin-top: 2px;
+    }
+    .moments-avatar-container {
+      position: relative;
+      cursor: pointer;
     }
     .moments-user-avatar {
       width: 64px;
       height: 64px;
       border-radius: 8px;
       border: 2px solid #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       object-fit: cover;
       background: #fff;
+      cursor: pointer;
+      display: block;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .user-profile-badge:hover .moments-user-avatar {
+      transform: scale(1.05);
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+    .moments-avatar-cv-chip {
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.4);
+      pointer-events: none;
     }
 
     .moments-item {
@@ -609,17 +728,36 @@
       gap: 6px;
       margin-bottom: 8px;
     }
+    .moments-grid-pics.single-pic {
+      display: block;
+    }
+    .moments-grid-pics.single-pic img {
+      width: auto;
+      max-width: 180px;
+      max-height: 180px;
+      height: auto;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #f8fafc;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .moments-grid-pics.single-pic img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
     .moments-grid-pics img {
       width: 85px;
       height: 85px;
       object-fit: cover;
       border-radius: 4px;
-      cursor: pointer;
       background: #e2e8f0;
+      cursor: pointer;
       transition: transform 0.2s;
     }
     .moments-grid-pics img:hover {
-      transform: scale(1.02);
+      transform: scale(1.03);
     }
     .moments-meta {
       display: flex;
@@ -635,7 +773,6 @@
       border-radius: 4px;
       padding: 6px 10px;
       font-size: 12px;
-      position: relative;
     }
     .moments-likes {
       color: #576b95;
@@ -658,7 +795,7 @@
       font-weight: 500;
     }
 
-    /* ================= 3. 右侧分析与破冰决策中心 ================= */
+    /* 3. 右侧分析与破冰决策中心 */
     .analysis-sidebar {
       background: #ffffff;
       display: flex;
@@ -731,7 +868,6 @@
     .tag-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .tag-green { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
     .tag-orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-    .tag-purple { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
 
     .insight-text {
       font-size: 12px;
@@ -743,7 +879,6 @@
       border-left: 3px solid #3b82f6;
     }
 
-    /* 推荐破冰话术卡片 */
     .pitch-suggestion-card {
       background: #fcfdfe;
       border: 1px solid #cbd5e1;
@@ -836,7 +971,6 @@
       transform: scale(0.97);
     }
 
-    /* 1. 链接按钮 */
     .btn-action.btn-link {
       background: linear-gradient(135deg, #07c160, #10b981);
       color: #ffffff;
@@ -847,7 +981,6 @@
       filter: brightness(1.05);
     }
 
-    /* 2. 重点按钮 */
     .btn-action.btn-star {
       background: linear-gradient(135deg, #f59e0b, #d97706);
       color: #ffffff;
@@ -858,7 +991,6 @@
       filter: brightness(1.05);
     }
 
-    /* 3. 忽略按钮 */
     .btn-action.btn-ignore {
       background: #f1f5f9;
       color: #64748b;
@@ -918,6 +1050,7 @@
     }
     .toast.success { background: #065f46; border-left: 4px solid #10b981; }
     .toast.warning { background: #78350f; border-left: 4px solid #f59e0b; }
+    .toast.danger { background: #7f1d1d; border-left: 4px solid #ef4444; }
     .toast.info { background: #1e293b; border-left: 4px solid #3b82f6; }
 
     /* 列表查看模态窗 */
@@ -935,8 +1068,8 @@
       display: flex;
     }
     .modal-content {
-      width: 720px;
-      max-height: 80vh;
+      width: 780px;
+      max-height: 82vh;
       background: white;
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
@@ -971,11 +1104,563 @@
       font-weight: 600;
     }
 
-    /* 响应式调整 */
-    @media (max-width: 1280px) {
-      .app-workspace {
-        grid-template-columns: 280px 1fr 340px;
-      }
+    .loading-spin {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ========================================================
+       图2: 候选人简历档案与微信底资料全景弹窗 (Cyber Dark Mode)
+       ======================================================== */
+    .moments-user-avatar {
+      cursor: pointer !important;
+      transition: all 0.25s ease !important;
+    }
+    .moments-user-avatar:hover {
+      transform: scale(1.1) !important;
+      box-shadow: 0 0 0 3px #07c160, 0 8px 20px rgba(0,0,0,0.4) !important;
+    }
+    .moments-author-avatar {
+      cursor: pointer !important;
+      transition: transform 0.2s !important;
+    }
+    .moments-author-avatar:hover {
+      transform: scale(1.1) !important;
+    }
+
+    .cv-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 99999 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: cvFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cvFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .cv-modal-dialog {
+      width: 1060px;
+      max-width: 96vw;
+      max-height: 92vh;
+      background: #0b1324;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 14px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 40px rgba(14, 165, 233, 0.18);
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: cvScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cvScaleIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* 头部 Header */
+    .cv-modal-header {
+      padding: 18px 24px 14px 24px;
+      background: #0f1a30;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .cv-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+    .cv-avatar-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .cv-avatar-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .cv-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .cv-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .cv-title-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+    .cv-pill-tag {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .cv-pill-tag.tag-subtle {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+    }
+    .cv-tags-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11.5px;
+      color: #94a3b8;
+    }
+    .cv-mini-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #94a3b8;
+    }
+    .cv-header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-shrink: 0;
+    }
+    .cv-salary-box {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .cv-salary-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: #facc15;
+      text-shadow: 0 0 14px rgba(250, 204, 21, 0.35);
+      letter-spacing: -0.5px;
+    }
+    .cv-match-badge {
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 8px;
+      border-radius: 4px;
+    }
+    .cv-btn-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .cv-btn-close:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    /* 子导航标签栏 */
+    .cv-sub-navbar {
+      background: #0c1629;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .cv-nav-chip {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .cv-nav-chip:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+    .cv-nav-chip.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    /* 主体内容两列布局 */
+    .cv-modal-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 20px;
+      background: #0b1324;
+    }
+    .cv-col-main, .cv-col-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* 通用卡片容器 */
+    .cv-card {
+      background: #111c34;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 16px 18px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .cv-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      letter-spacing: -0.1px;
+    }
+    .cv-card-icon {
+      font-size: 16px;
+    }
+
+    /* 个人优势卡片 */
+    .cv-advantage-desc {
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 6px;
+      border-left: 3px solid #38bdf8;
+    }
+    .cv-bullets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cv-bullet-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #94a3b8;
+    }
+    .cv-bullet-item span.cv-bullet-dot {
+      color: #38bdf8;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    /* 工作经历时间轴 */
+    .cv-work-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cv-timeline-item {
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .cv-timeline-item:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: rgba(15, 23, 42, 0.7);
+    }
+    .cv-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .cv-item-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    .cv-item-dur {
+      font-size: 11.5px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .cv-item-sal {
+      color: #34d399;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .cv-item-desc {
+      font-size: 12px;
+      line-height: 1.55;
+      color: #94a3b8;
+    }
+
+    /* 底部操作按钮 */
+    .cv-main-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .cv-btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      transition: all 0.2s;
+    }
+    .cv-btn-green {
+      background: #059669;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+    }
+    .cv-btn-green:hover {
+      background: #047857;
+      transform: translateY(-1px);
+    }
+    .cv-btn-blue {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    .cv-btn-blue:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    .cv-btn-gray {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+    }
+    .cv-btn-gray:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .cv-btn-dark {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #94a3b8;
+    }
+    .cv-btn-dark:hover {
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+
+    /* 右侧信息列表 */
+    .cv-info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cv-info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 10px;
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .cv-info-label {
+      font-size: 11.5px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+    .cv-info-val-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .cv-info-val {
+      font-size: 12.5px;
+      color: #f1f5f9;
+      font-weight: 500;
+      word-break: break-all;
+    }
+    .cv-val-highlight {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .cv-val-file {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .cv-copy-mini {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cv-copy-mini:hover {
+      background: rgba(56, 189, 248, 0.3);
+    }
+
+    /* 多版本切换 */
+    .cv-alt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cv-alt-chip {
+      padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .cv-alt-chip:hover {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      color: #fff;
+    }
+
+    /* 右侧决策动作 */
+    .cv-sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .cv-action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cv-act-btn {
+      height: 36px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .cv-act-btn.btn-wechat {
+      background: #07c160;
+      color: #fff;
+    }
+    .cv-act-btn.btn-wechat:hover { background: #06ad56; }
+    .cv-act-btn.btn-linked {
+      background: #2563eb;
+      color: #fff;
+    }
+    .cv-act-btn.btn-linked:hover { background: #1d4ed8; }
+    .cv-act-btn.btn-starred {
+      background: #d97706;
+      color: #fff;
+    }
+    .cv-act-btn.btn-starred:hover { background: #b45309; }
+    .cv-act-btn.btn-ignored {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .cv-act-btn.btn-ignored:hover { background: #475569; }
+
+    .cv-ai-btn {
+      width: 100%;
+      height: 40px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s;
+    }
+    .cv-ai-btn:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      transform: translateY(-1px);
     }
   </style>
 </head>
@@ -986,7 +1671,7 @@
     <div class="brand-section">
       <div class="brand-logo">微</div>
       <div>
-        <div class="brand-title">WxApi.Analyses 好友副业意向全景分析工作台</div>
+        <div class="brand-title">WxApi.Analyses 微信好友微创业意向全景分析工作台</div>
       </div>
       <span class="brand-badge">ASP.NET 9 + WeChat 4.1.8.27</span>
     </div>
@@ -995,31 +1680,53 @@
     <div class="stats-bar">
       <div class="stat-pill" onclick="showStorageModal('all')">
         <span>已加载有效好友:</span>
-        <strong id="stat-total-count">1,270</strong>
+        <strong id="stat-total-count">0</strong>
       </div>
       <div class="stat-pill success" onclick="showStorageModal('linked')">
         <span>🔗 链接列表:</span>
-        <strong id="stat-linked-count">18</strong> 人
+        <strong id="stat-linked-count">0</strong> 人
       </div>
       <div class="stat-pill warning" onclick="showStorageModal('starred')">
         <span>⭐ 重点跟进:</span>
-        <strong id="stat-starred-count">9</strong> 人
+        <strong id="stat-starred-count">0</strong> 人
       </div>
       <div class="stat-pill muted" onclick="showStorageModal('ignored')">
         <span>⚪ 忽略列表:</span>
-        <strong id="stat-ignored-count">42</strong> 人
+        <strong id="stat-ignored-count">0</strong> 人
+      </div>
+      <div class="stat-pill" onclick="showAiTrainingModal()" style="border-color:#7dd3fc; background:#f0f9ff; cursor:pointer;" title="点击查看沉淀的AI训练样本数据集">
+        <span style="color:#0284c7;">🧠 AI训练样本:</span>
+        <strong id="stat-training-count" style="color:#0284c7;">0</strong> 条
       </div>
     </div>
 
     <div class="header-actions">
-      <button class="btn-header" onclick="showStorageModal('export')">
+      <button class="btn-header" onclick="showStorageModal('linked')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         查看本地文件
       </button>
-      <button class="btn-header" style="background:#07c160; color:white; border-color:#07c160;" onclick="refreshAllData()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        同步最新状态
-      </button>
+      <!-- 动态微信Hook接口地址指示徽章 -->
+      <div id="hook-url-badge" class="hook-url-badge" title="当前连接的微信 Hook 接口服务地址">
+        🔗 Hook: 正在检测...
+      </div>
+      <!-- Excel 文件选择与重新读取组合 -->
+      <div class="excel-selector-group" title="选择 WxDatas 中的 Excel 透视表">
+        <div class="excel-select-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#07c160" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="16" y2="17"></line>
+          </svg>
+          <select id="excel-file-select" class="excel-select" onchange="onExcelFileChanged(this.value)">
+            <option value="">正在检索 WxDatas...</option>
+          </select>
+        </div>
+        <button id="btn-reload-excel" class="btn-reload-excel" onclick="refreshAllData()" title="重新读取当前选中的 Excel 文件">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          重新读取
+        </button>
+      </div>
     </div>
   </header>
 
@@ -1034,17 +1741,17 @@
           <input type="text" id="contact-search" class="search-input" placeholder="搜索姓名 / 备注 / wxid..." oninput="handleSearch(this.value)">
         </div>
         <div class="tier-tabs">
-          <div class="tier-chip active" onclick="filterTier('ALL', this)">全部 (1270)</div>
-          <div class="tier-chip s-tier" onclick="filterTier('S', this)">S级-强意向 (104)</div>
-          <div class="tier-chip a-tier" onclick="filterTier('A', this)">A级-明确 (168)</div>
-          <div class="tier-chip" onclick="filterTier('B', this)">B级 (211)</div>
-          <div class="tier-chip" onclick="filterTier('C', this)">C级 (373)</div>
-          <div class="tier-chip" onclick="filterTier('D', this)">D级 (414)</div>
+          <div class="tier-chip active" onclick="filterTier('ALL', this)">全部 (<span id="chip-all-count">0</span>)</div>
+          <div class="tier-chip s-tier" onclick="filterTier('S', this)">S级-强意向 (<span id="chip-s-count">0</span>)</div>
+          <div class="tier-chip a-tier" onclick="filterTier('A', this)">A级-明确 (<span id="chip-a-count">0</span>)</div>
+          <div class="tier-chip" onclick="filterTier('B', this)">B级 (<span id="chip-b-count">0</span>)</div>
+          <div class="tier-chip" onclick="filterTier('C', this)">C级 (<span id="chip-c-count">0</span>)</div>
+          <div class="tier-chip" onclick="filterTier('D', this)">D级 (<span id="chip-d-count">0</span>)</div>
         </div>
       </div>
 
       <div class="contacts-list-container" id="contacts-list">
-        <!-- 动态渲染好友列表 -->
+        <div style="text-align:center; padding:30px; color:#9ca3af;">正在加载好友数据...</div>
       </div>
     </aside>
 
@@ -1055,10 +1762,10 @@
       <div class="chat-view-panel">
         <div class="panel-header">
           <div class="panel-title-group">
-            <span class="panel-title" id="chat-header-name">飛飛</span>
-            <span class="panel-badge" id="chat-header-wxid">wxid_38rn4b7ubs2f11</span>
+            <span class="panel-title" id="chat-header-name">请选择好友</span>
+            <span class="panel-badge" id="chat-header-wxid">--</span>
           </div>
-          <div style="font-size: 11px; color:#8c8c8c;">历史聊天共 <strong id="chat-msg-count">14</strong> 条</div>
+          <div style="font-size: 11px; color:#8c8c8c;">历史聊天共 <strong id="chat-msg-count">0</strong> 条</div>
         </div>
 
         <div class="chat-body" id="chat-message-stream">
@@ -1074,7 +1781,7 @@
           </div>
           <textarea id="composer-text" class="composer-input" placeholder="输入向对方发送的微信消息..."></textarea>
           <div class="composer-footer">
-            <span style="font-size: 11px; color: #9ca3af;">Enter换行，点击右侧可直接调用Hook发送</span>
+            <span style="font-size: 11px; color: #9ca3af;">Enter换行，点击发送可调用 Hook 发送</span>
             <button class="btn-pitch primary" onclick="sendCustomMessage()">发送消息</button>
           </div>
         </div>
@@ -1087,9 +1794,14 @@
             <span class="panel-title">好友朋友圈动态</span>
             <span class="panel-badge" style="background:#dbeafe; color:#1e40af;">相册实时同步</span>
           </div>
-          <button class="btn-header" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
-            🔄 刷新朋友圈
-          </button>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn-header" style="height:26px; padding:0 10px; font-size:11px; background:#0284c7; color:#fff; border-color:#0284c7; font-weight:600; cursor:pointer;" onclick="openContactCvProfile()" title="点击获取详细资料与简历 (get_contact_fast)">
+              📄 资料/简历
+            </button>
+            <button class="btn-header" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
+              🔄 刷新朋友圈
+            </button>
+          </div>
         </div>
 
         <div class="moments-feed" id="moments-stream">
@@ -1126,7 +1838,7 @@
         </div>
         <div class="nav-shortcuts">
           <button class="btn-nav-small" onclick="navContact(-1)">◀ 上一位好友</button>
-          <span id="nav-index-indicator">当前第 1 / 104 位</span>
+          <span id="nav-index-indicator">当前第 0 / 0 位</span>
           <button class="btn-nav-small" onclick="navContact(1)">下一位好友 ▶</button>
         </div>
       </div>
@@ -1150,227 +1862,290 @@
     </div>
   </div>
 
-  <script>
-    // 模拟数据源（源自真实透视表结构与微信实际互动情景，已过滤 E 级僵尸粉）
-    const MOCK_CONTACTS = [
-      {
-        wxid: "wxid_38rn4b7ubs2f11",
-        name: "飛飛",
-        remark: "飛飛 (电商/女装供应链负责人)",
-        tier: "S",
-        tierLabel: "S级-强烈意向",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-        cover: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
-        status: "PENDING", // PENDING, LINKED, STARRED, IGNORED
-        lastActive: "2小时前",
-        // 对话记录
-        chatHistory: [
-          { sender: "peer", time: "2026-10-06 14:20", text: "Sam哥，最近在朋友圈看你一直在分享AI副业和私域闭环那一套，感觉很有深度啊！" },
-          { sender: "self", time: "2026-10-06 14:22", text: "哈哈飞飞姐好久不见！现在实体和电商流量成本高，大家都在探索低成本的微创业杠杆。" },
-          { sender: "peer", time: "2026-10-06 14:25", text: "真的，我这边服装档口和淘宝店利润被卷得太薄了，库存压力也大。我一直想找个不需要大本金压货的轻资产项目转型。" },
-          { sender: "self", time: "2026-10-06 14:28", text: "你这个资源底子好，有供应链又有客户信任感，做高毛利的私域微创方案其实起步非常快。" },
-          { sender: "peer", time: "2026-10-07 19:12", text: "对！你有成熟的案例或者合作机制吗？什么时候方便详细聊聊？" },
-          { sender: "self", time: "2026-10-07 20:05", text: "没问题，我正整理一套轻量化破局模型，等我把资料准备好发你。" }
-        ],
-        // 朋友圈动态
-        moments: [
-          {
-            date: "今天 10:15",
-            content: "连轴转了三天核对秋装退货率，传统电商的退货率已经逼近70%了… 时代真的变了，下半年必须把精力腾出来布局轻量副业和私域个人IP，不能把鸡蛋放在一个篮子里！加油！💪",
-            images: [
-              "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=260&q=80",
-              "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=260&q=80"
-            ],
-            likes: ["林总", "陈晨", "小雅", "Samuel"],
-            comments: [
-              { user: "陈晨", text: "飞飞姐心态稳，支持你转型！" },
-              { user: "飛飛", text: "回复陈晨: 谢谢，抱团取暖呀～" }
-            ]
-          },
-          {
-            date: "10月04日",
-            content: "周末带娃露营放空一下。其实最好的状态就是时间自由、收益稳定，正在思考未来的轻创业方向。",
-            images: [
-              "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=260&q=80"
-            ],
-            likes: ["Samuel", "张伟", "Linda"],
-            comments: []
-          }
-        ],
-        // AI 分析建议
-        aiInsight: {
-          painPoint: "实体及淘系电商高退货率、重资产压库存痛点极深；迫切需要轻资产、高现金流的私域/副业增长模型。",
-          profile: "决策果断、执行力极强、拥有丰富商流经验，具备客群号召力。",
-          interestLevel: "95% (S级强烈意向)",
-          recommendedPitch: "飞飞姐，看了你今天发的朋友圈，传统电商退换货确实太磨人了！前两天你提到想转型轻资产微创业，我们这边刚好落地了一批针对电商家人的『零库存·私域高客单闭环模型』，毛利在60%以上且无需压货。我把两页核心操盘逻辑先发你看看？"
-        }
-      },
-      {
-        wxid: "wxid_im29gi2qxj8412",
-        name: "Wendy",
-        remark: "Wendy (大厂运营/母婴社群团长)",
-        tier: "S",
-        tierLabel: "S级-强烈意向",
-        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80",
-        cover: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=800&q=80",
-        status: "PENDING",
-        lastActive: "昨天",
-        chatHistory: [
-          { sender: "peer", time: "2026-10-02 11:10", text: "Samuel，大厂现在年终裁员预期很大，我和身边的几个同事都在琢磨下班搞副业。" },
-          { sender: "self", time: "2026-10-02 11:15", text: "能理解，主业求稳，副业生财，现在是打造个人双引擎的黄金期。" },
-          { sender: "peer", time: "2026-10-02 11:18", text: "对，但我不想做那些打卡割韭菜的课，想要真实能落地产生复购的微创业项目。" }
-        ],
-        moments: [
-          {
-            date: "昨天 21:30",
-            content: "加班到这个点，大厂的螺丝钉一眼望得到头。副业微创业不是可选项，而是中年打工人的安全气囊。",
-            images: [
-              "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=260&q=80"
-            ],
-            likes: ["Samuel", "周琳", "王凯"],
-            comments: [{ user: "周琳", text: "深有同感！带我一个！" }]
-          }
-        ],
-        aiInsight: {
-          painPoint: "职场危机感强，对大厂天花板感到焦虑；渴望兼顾本职工作的标准化轻创业项目。",
-          profile: "严谨细致、重视可落地性与项目真实性，排斥夸大宣传。",
-          interestLevel: "90% (S级强烈意向)",
-          recommendedPitch: "Wendy，昨晚看你发圈感慨深有同感。你在社群运营和人群洞察上优势很强，我们这套微创业项目刚好适合下班后每天投入1-2小时，标准化交付、不占用大块白天时间。晚上8点如果有空，我给你微信发一份5分钟速览脑图？"
-        }
-      },
-      {
-        wxid: "wxid_653mpocrjuox22",
-        name: "Miss.～Ren",
-        remark: "Ren (少儿英语教育培训工作室创始人)",
-        tier: "A",
-        tierLabel: "A级-明确意向",
-        avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
-        cover: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
-        status: "PENDING",
-        lastActive: "3天前",
-        chatHistory: [
-          { sender: "peer", time: "2026-09-28 16:00", text: "老师好，我们教培转型目前急需增加家庭教育周边的增值副业产品。" },
-          { sender: "self", time: "2026-09-28 16:04", text: "宝妈群体的黏性和客单价其实非常高，非常契合协同微创矩阵。" }
-        ],
-        moments: [
-          {
-            date: "10月05日",
-            content: "秋季班结业，家长们都在问有没有更多拓宽孩子视野或家庭成长的新项目。正在紧锣密鼓对接新产品线！",
-            images: [
-              "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=260&q=80"
-            ],
-            likes: ["李老师", "Samuel"],
-            comments: []
-          }
-        ],
-        aiInsight: {
-          painPoint: "教培存量学员需要二次变现与延伸服务，缺少强匹配的产品载体。",
-          profile: "注重教育口碑，对产品品质有高要求。",
-          interestLevel: "82% (A级明确意向)",
-          recommendedPitch: "Ren老师好！看到你秋季班圆满结业，恭喜！针对你手头庞大的家长高信赖客群，我们有一套无需额外备课但家长复购极高的家庭成长赋能项目，已有好几家机构作为增收副业跑通了，要不要抽空给你做个线上Demo演示？"
-        }
-      },
-      {
-        wxid: "wxid_l1t90dstx7pq22",
-        name: "汐铭",
-        remark: "汐铭 (自媒体自由职业者)",
-        tier: "A",
-        tierLabel: "A级-明确意向",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-        cover: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
-        status: "PENDING",
-        lastActive: "4天前",
-        chatHistory: [
-          { sender: "peer", time: "2026-09-25 15:30", text: "现在商单不太稳定，想找个长期的私域微创业项目沉淀粉丝。" },
-          { sender: "self", time: "2026-09-25 15:35", text: "对，自媒体前端流量做杠杆，后端私域才是利润金矿。" }
-        ],
-        moments: [
-          {
-            date: "10月02日",
-            content: "咖啡馆码字的一天。自由职业最大的挑战是不确定性，必须建立第二增长飞轮。",
-            images: ["https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=260&q=80"],
-            likes: ["Samuel"],
-            comments: []
-          }
-        ],
-        aiInsight: {
-          painPoint: "商单广告不稳定，现金流波幅大，急需自建私域被动收益池。",
-          profile: "内容创作能力突出，对新趋势接受度极高。",
-          interestLevel: "80% (A级明确意向)",
-          recommendedPitch: "汐铭，看到你一直在探索第二飞轮。你有这么强的内容和网感，如果结合我们后端自动交付的微创业高客单体系，粉丝变现效率至少能翻3倍。我发你一个我们上个月创作者伙伴的月度复盘拆解？"
-        }
-      },
-      {
-        wxid: "lve521",
-        name: "5.Lue",
-        remark: "Lue (美业连锁店长)",
-        tier: "B",
-        tierLabel: "B级-潜在意向",
-        avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&h=120&q=80",
-        cover: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
-        status: "PENDING",
-        lastActive: "1周前",
-        chatHistory: [
-          { sender: "peer", time: "2026-09-18 20:10", text: "店里进店客流比去年降了三成，员工工资发着肉疼。" },
-          { sender: "self", time: "2026-09-18 20:15", text: "可以考虑把老客户做二次微创业裂变，线上线下互通。" }
-        ],
-        moments: [
-          {
-            date: "09月29日",
-            content: "又是忙碌的一天，给客户做护理。希望能开拓更多不用坐班的收入管道。",
-            images: ["https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=260&q=80"],
-            likes: [],
-            comments: []
-          }
-        ],
-        aiInsight: {
-          painPoint: "实体门店房租人工成本固定，到店客流下滑；渴望线上无边界副业增收。",
-          profile: "重客户口碑，习惯直观沟通。",
-          interestLevel: "68% (B级潜在意向)",
-          recommendedPitch: "Lue店长好，最近美业客情怎么样？你店里的高净值女性客户其实天然对变美与轻创业非常敏感。我们手头有一套美业门店结合私域微创的嫁接打法，不占门店面积、不加重技师负担，每月能多增收一两万净利。改天去你店里当面交流一下？"
-        }
-      }
-    ];
+  <!-- 候选人简历档案与微信底资料全景弹窗 (图2设计) -->
+  <div class="cv-modal-overlay" id="cv-profile-modal" style="display:none;" onclick="handleCvModalOverlayClick(event)">
+    <div class="cv-modal-dialog" id="cv-modal-dialog">
+      <!-- 弹窗 Header -->
+      <div class="cv-modal-header">
+        <div class="cv-header-left">
+          <div class="cv-avatar-badge" id="cv-avatar-badge">A</div>
+          <div class="cv-title-group">
+            <div class="cv-title-row">
+              <span class="cv-title-name" id="cv-title-name">ACCA学员周瑜</span>
+              <span class="cv-pill-tag" id="cv-tag-age">21岁</span>
+              <span class="cv-pill-tag" id="cv-tag-role">会计主管</span>
+              <span class="cv-pill-tag tag-subtle" id="cv-tag-status">离校-正在找工作</span>
+            </div>
+            <div class="cv-tags-row" id="cv-tags-row">
+              <span class="cv-mini-badge" id="cv-badge-loc">📍 上海</span>
+              <span class="cv-mini-badge" id="cv-badge-edu">🎓 本科</span>
+              <span class="cv-mini-badge" id="cv-badge-match">⚡ 95% 匹配</span>
+            </div>
+          </div>
+        </div>
+        <div class="cv-header-right">
+          <div class="cv-salary-box">
+            <span class="cv-salary-text" id="cv-salary-text">11-22K</span>
+            <span class="cv-match-badge" id="cv-match-badge">95% 匹配度</span>
+          </div>
+          <button class="cv-btn-close" onclick="closeCvModal()" title="关闭弹窗 (Esc)">&times;</button>
+        </div>
+      </div>
 
-    // 全局状态管理
-    let contactsData = [...MOCK_CONTACTS];
+      <!-- 子导航标签栏 (图2 中间分类标签) -->
+      <div class="cv-sub-navbar">
+        <button class="cv-nav-chip active" onclick="switchCvTab('ALL', this)">全部概览</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('ADVANTAGE', this)">个人优势</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('INTENT', this)">求职意向</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('WORK', this)">工作经历</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('PROJECT', this)">项目经历</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('EDU', this)">教育背景</button>
+        <button class="cv-nav-chip" onclick="switchCvTab('EVAL', this)">自我评价</button>
+      </div>
+
+      <!-- 弹窗 Body 两列布局 -->
+      <div class="cv-modal-body">
+        <!-- 左列 (~60%) -->
+        <div class="cv-col-main">
+          <!-- 卡片 1: 个人优势与自我评价 (对应图2左上) -->
+          <div class="cv-card" id="cv-card-advantage">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">📋</span>
+              <span>个人优势与自我评价</span>
+            </div>
+            <div class="cv-advantage-desc" id="cv-self-eval-text">
+              本人性格开朗，喜欢挑战。善于有目标有计划的工作、学习和生活，极为珍惜时间。适应力强、反应迅速、求知欲强、兴趣广泛、掌握学习潜力强、思维敏锐、主动活泼且健谈、聪慧且多才多艺、具有写作和语言方面的天赋、逻辑推理、思辨潜力强，对外界信息相当敏感、掌握情报速度快，涉猎广、知识面宽，思想具有通融性，想法、行事具有弹性，在任何环境都适应良好。
+            </div>
+            <div class="cv-bullets-list" id="cv-bullets-list">
+              <!-- 动态子项 -->
+            </div>
+          </div>
+
+          <!-- 卡片 2: 工作经历与项目实操 (对应图2左下) -->
+          <div class="cv-card" id="cv-card-work">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">💼</span>
+              <span>工作经历与项目实操</span>
+            </div>
+            <div class="cv-work-timeline" id="cv-work-timeline">
+              <!-- 经历项 -->
+            </div>
+          </div>
+
+          <!-- 若简历是图片，展示原图预览 -->
+          <div class="cv-card" id="cv-image-preview-card" style="display:none;">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">🖼️</span>
+              <span>简历图片原件展示</span>
+            </div>
+            <div style="text-align:center; padding:10px; background:#0b101b; border-radius:6px; overflow:auto; max-height:450px;">
+              <img id="cv-preview-img" src="" alt="简历图片" style="max-width:100%; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.4);" />
+            </div>
+          </div>
+
+          <!-- 底部核心操作按钮 -->
+          <div class="cv-main-actions">
+            <button class="cv-btn cv-btn-green" onclick="openCurrentCvOriginal()">
+              <span>📂</span> 打开简历原件
+            </button>
+            <button class="cv-btn cv-btn-blue" onclick="copyCvSummaryToClipboard()">
+              <span>📋</span> 复制简历摘要
+            </button>
+            <button class="cv-btn cv-btn-gray" onclick="exploreCurrentCvFolder()">
+              <span>🔍</span> 在文件夹中定位
+            </button>
+            <button class="cv-btn cv-btn-dark" onclick="downloadCurrentCvFile()">
+              <span>📥</span> 浏览器预览
+            </button>
+          </div>
+        </div>
+
+        <!-- 右列 (~40%) -->
+        <div class="cv-col-sidebar">
+          <!-- 卡片 1: 联系方式与基本信息 (对应图2右上) -->
+          <div class="cv-card">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">📞</span>
+              <span>基本信息与联系方式</span>
+            </div>
+            <div class="cv-info-list">
+              <div class="cv-info-row">
+                <span class="cv-info-label">手机号码</span>
+                <div class="cv-info-val-wrap">
+                  <span class="cv-info-val cv-val-highlight" id="cv-info-phone">18294436281</span>
+                  <button class="cv-copy-mini" onclick="copyText(document.getElementById('cv-info-phone').innerText, '手机号码')">复制</button>
+                </div>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">电子邮箱</span>
+                <div class="cv-info-val-wrap">
+                  <span class="cv-info-val" id="cv-info-email">294397452@qq.com</span>
+                  <button class="cv-copy-mini" onclick="copyText(document.getElementById('cv-info-email').innerText, '电子邮箱')">复制</button>
+                </div>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">现居城市</span>
+                <span class="cv-info-val" id="cv-info-location">兰州 / 上海</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">意向城市</span>
+                <span class="cv-info-val" id="cv-info-intended">广州 / 深圳</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">最高学历</span>
+                <span class="cv-info-val" id="cv-info-edu">本科 · 兰州理工大学</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">户口所在地</span>
+                <span class="cv-info-val" id="cv-info-hukou">甘肃张掖</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">政治面貌</span>
+                <span class="cv-info-val" id="cv-info-pol">共青团员</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 卡片 2: 微信底层资料 (get_contact_fast) -->
+          <div class="cv-card">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">💬</span>
+              <span>微信底层资料 (get_contact_fast)</span>
+            </div>
+            <div class="cv-info-list">
+              <div class="cv-info-row">
+                <span class="cv-info-label">内部标识</span>
+                <span class="cv-info-val" id="cv-wx-username">wxid_...</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">微信昵称</span>
+                <span class="cv-info-val" id="cv-wx-nickname">Tina</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">好友备注</span>
+                <span class="cv-info-val" id="cv-wx-remark">--</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">数据来源</span>
+                <span class="cv-info-val" id="cv-wx-source" style="color:#10b981;">微信 Hook 快速查询</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">匹配简历</span>
+                <span class="cv-info-val cv-val-file" id="cv-matched-file-name" title="">ACCA学员周瑜.pdf</span>
+              </div>
+              <div class="cv-info-row">
+                <span class="cv-info-label">匹配机制</span>
+                <span class="cv-info-val" id="cv-match-reason" style="color:#38bdf8; font-size:11px; word-break:break-all;">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 多版本切换 (若有多个匹配简历) -->
+          <div class="cv-card" id="cv-alt-files-card" style="display:none;">
+            <div class="cv-card-title">
+              <span class="cv-card-icon">🔄</span>
+              <span>候选匹配简历切换 (<span id="cv-alt-count">0</span>)</span>
+            </div>
+            <div class="cv-alt-list" id="cv-alt-files-list"></div>
+          </div>
+
+          <!-- 决策动作按钮组 (对应图2右下) -->
+          <div class="cv-sidebar-actions">
+            <div class="cv-action-grid">
+              <button class="cv-act-btn btn-wechat" onclick="triggerCvWechatChat()">
+                <span>💬</span> 发起沟通
+              </button>
+              <button class="cv-act-btn btn-linked" onclick="triggerCvDecide('LINKED')">
+                <span>🔗</span> 加入链接
+              </button>
+              <button class="cv-act-btn btn-starred" onclick="triggerCvDecide('STARRED')">
+                <span>⭐</span> 重点跟进
+              </button>
+              <button class="cv-act-btn btn-ignored" onclick="triggerCvDecide('IGNORED')">
+                <span>⚪</span> 忽略候选
+              </button>
+            </div>
+            <button class="cv-ai-btn" onclick="triggerCvAiInsight()">
+              <span>🧠</span> AI 简历与微创业契合度分析
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局运行时状态
+    var currentCvData = null;
+    window.currentCvData = null;
+    let contactsList = [];
     let currentFilterTier = "ALL";
     let currentSearchText = "";
     let currentIndex = 0;
+    let currentContactDetail = null;
 
-    // 本地文件存储数据模拟（对应真实保存到本地 .json 或 .csv 文件）
-    let storageDb = {
-      linked: JSON.parse(localStorage.getItem('wx_analysis_linked') || '[]'),
-      starred: JSON.parse(localStorage.getItem('wx_analysis_starred') || '[]'),
-      ignored: JSON.parse(localStorage.getItem('wx_analysis_ignored') || '[]')
-    };
-
-    // 初始化运行
-    function init() {
-      // 合并本地已标记的状态
-      contactsData.forEach(c => {
-        if (storageDb.linked.some(item => item.wxid === c.wxid)) c.status = "LINKED";
-        else if (storageDb.starred.some(item => item.wxid === c.wxid)) c.status = "STARRED";
-        else if (storageDb.ignored.some(item => item.wxid === c.wxid)) c.status = "IGNORED";
-      });
-
-      renderContactsList();
-      selectContact(0);
-      updateStats();
+    // 页面启动加载
+    async function init() {
+      await loadExcelFiles();
+      await fetchStats();
+      await fetchContacts();
     }
 
-    // 渲染好友导航列表
+    // 1. 获取全局统计看板
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+        document.getElementById("stat-total-count").innerText = stats.totalContacts.toLocaleString();
+        document.getElementById("stat-linked-count").innerText = stats.linkedCount;
+        document.getElementById("stat-starred-count").innerText = stats.starredCount;
+        document.getElementById("stat-ignored-count").innerText = stats.ignoredCount;
+
+        if (stats.tierDistribution) {
+          document.getElementById("chip-all-count").innerText = stats.totalContacts;
+          document.getElementById("chip-s-count").innerText = stats.tierDistribution["S"] || 0;
+          document.getElementById("chip-a-count").innerText = stats.tierDistribution["A"] || 0;
+          document.getElementById("chip-b-count").innerText = stats.tierDistribution["B"] || 0;
+          document.getElementById("chip-c-count").innerText = stats.tierDistribution["C"] || 0;
+          document.getElementById("chip-d-count").innerText = stats.tierDistribution["D"] || 0;
+        }
+      } catch (err) {
+        console.error("加载统计失败:", err);
+      }
+    }
+
+    // 2. 加载好友列表
+    async function fetchContacts() {
+      try {
+        let url = `/api/contacts?tier=${encodeURIComponent(currentFilterTier)}`;
+        if (currentSearchText) url += `&search=${encodeURIComponent(currentSearchText)}`;
+
+        const res = await fetch(url);
+        const json = await res.json();
+        contactsList = json.data || [];
+        renderContactsList();
+
+        if (contactsList.length > 0) {
+          if (currentIndex >= contactsList.length) currentIndex = 0;
+          await selectContact(currentIndex);
+        } else {
+          clearView();
+        }
+      } catch (err) {
+        showToast("读取联系人列表失败: " + err.message, "warning");
+      }
+    }
+
+    // 渲染左侧导航列表
     function renderContactsList() {
       const container = document.getElementById("contacts-list");
-      const filtered = getFilteredContacts();
-
-      if (filtered.length === 0) {
+      if (contactsList.length === 0) {
         container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:#9ca3af; font-size:13px;">没有找到符合条件的好友</div>`;
         return;
       }
 
-      container.innerHTML = filtered.map((c, idx) => {
-        const isSelected = contactsData[currentIndex]?.wxid === c.wxid;
+      container.innerHTML = contactsList.map((c, idx) => {
+        const isSelected = idx === currentIndex;
         const statusMap = {
           LINKED: `<span class="status-tag tag-linked">已加入链接</span>`,
           STARRED: `<span class="status-tag tag-star">重点跟进</span>`,
@@ -1379,9 +2154,9 @@
         };
 
         return `
-          <div class="contact-item ${isSelected ? 'active' : ''}" onclick="selectContactByWxid('${c.wxid}')">
-            <div class="avatar-wrap">
-              <img class="avatar-img" src="${c.avatar}" alt="${c.name}">
+          <div class="contact-item ${isSelected ? 'active' : ''}" onclick="selectContact(${idx})">
+            <div class="avatar-wrap" onclick="event.stopPropagation(); selectContact(${idx}); openContactCvProfile('${c.wxid}')" title="点击快速获取【${c.name}】详细资料与简历 (get_contact_fast)">
+              <img class="avatar-img" src="${c.avatar}" alt="${c.name}" onerror="this.src='https://i.pravatar.cc/150?img=1'">
               <span class="tier-badge-sub badge-${c.tier}">${c.tier}</span>
             </div>
             <div class="contact-info">
@@ -1396,38 +2171,63 @@
       }).join('');
     }
 
-    // 获取过滤后的联系人
-    function getFilteredContacts() {
-      return contactsData.filter(c => {
-        const matchesTier = currentFilterTier === "ALL" || c.tier === currentFilterTier;
-        const matchesSearch = !currentSearchText || 
-          c.name.toLowerCase().includes(currentSearchText.toLowerCase()) ||
-          c.remark.toLowerCase().includes(currentSearchText.toLowerCase()) ||
-          c.wxid.toLowerCase().includes(currentSearchText.toLowerCase());
-        return matchesTier && matchesSearch;
-      });
-    }
-
-    // 选中好友渲染全量详情
-    function selectContact(index) {
-      if (index < 0 || index >= contactsData.length) return;
+    // 3. 选中某个好友加载详情 (聊天、朋友圈、AI意向分析)
+    async function selectContact(index) {
+      if (index < 0 || index >= contactsList.length) return;
       currentIndex = index;
-      const contact = contactsData[currentIndex];
+      const contact = contactsList[currentIndex];
 
-      // 1. 更新顶部指标
-      document.getElementById("nav-index-indicator").innerText = `当前第 ${currentIndex + 1} / ${contactsData.length} 位`;
+      // 更新导航指示
+      document.getElementById("nav-index-indicator").innerText = `当前第 ${currentIndex + 1} / ${contactsList.length} 位`;
+      renderContactsList();
 
-      // 2. 渲染聊天历史
+      // 显示加载中状态
       document.getElementById("chat-header-name").innerText = contact.name + (contact.remark ? ` (${contact.remark})` : '');
       document.getElementById("chat-header-wxid").innerText = contact.wxid;
-      document.getElementById("chat-msg-count").innerText = contact.chatHistory.length;
+      document.getElementById("analysis-container").innerHTML = `
+        <div style="text-align:center; padding:50px 20px; color:#64748b;">
+          <div class="loading-spin" style="border-color:#07c160; border-top-color:transparent; width:28px; height:28px; margin-bottom:12px;"></div>
+          <div>正在分析【${contact.name}】的聊天历史与朋友圈...</div>
+        </div>
+      `;
 
+      try {
+        const res = await fetch(`/api/contacts/${encodeURIComponent(contact.wxid)}/detail`);
+        if (!res.ok) throw new Error("获取详情失败");
+        const data = await res.json();
+        currentContactDetail = data;
+
+        if (data.contact && data.contact.realWxid && data.contact.realWxid !== contact.wxid) {
+          document.getElementById("chat-header-wxid").innerText = `${contact.wxid} · 底层ID: ${data.contact.realWxid}`;
+        }
+
+        renderChat(data.chatHistory, contact);
+        renderMoments(data.moments, data.contact || contact, data.snsNotice);
+        renderAiInsight(data.aiInsight, contact);
+      } catch (err) {
+        showToast("加载好友详情失败: " + err.message, "warning");
+      }
+    }
+
+    // 渲染聊天记录
+    function renderChat(chatHistory, contact) {
+      document.getElementById("chat-msg-count").innerText = chatHistory.length;
       const chatBox = document.getElementById("chat-message-stream");
-      chatBox.innerHTML = contact.chatHistory.map(msg => {
+      if (!chatHistory || chatHistory.length === 0) {
+        chatBox.innerHTML = `
+          <div style="text-align:center; margin:auto; padding:40px 20px; color:#9ca3af;">
+            <div style="font-size:36px; margin-bottom:10px;">💬</div>
+            <div style="font-size:13px; font-weight:500; color:#475569;">暂无与【${contact.name}】的历史聊天记录</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:4px;">可直接在下方输入框通过微信发送破冰/链接消息</div>
+          </div>
+        `;
+        return;
+      }
+      chatBox.innerHTML = chatHistory.map(msg => {
         const isSelf = msg.sender === "self";
         return `
           <div class="chat-message-row ${isSelf ? 'self' : 'peer'}">
-            <img class="msg-avatar" src="${isSelf ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&h=120&q=80' : contact.avatar}" alt="avatar">
+            <img class="msg-avatar" src="${isSelf ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&h=120&q=80' : contact.avatar}" alt="avatar" ${isSelf ? '' : `onclick="openContactCvProfile('${contact.wxid}')" style="cursor:pointer;" title="点击获取【${contact.name}】详细资料与简历"`} onerror="this.src='https://i.pravatar.cc/150?img=2'">
             <div class="msg-bubble-wrap">
               <span class="msg-sender">${isSelf ? '我' : contact.name} · ${msg.time}</span>
               <div class="msg-bubble">${msg.text}</div>
@@ -1435,28 +2235,43 @@
           </div>
         `;
       }).join('');
-      // 平滑滚动到底部
       chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-      // 3. 渲染朋友圈
+    // 渲染朋友圈动态
+    function renderMoments(moments, contact, snsNotice) {
       const momentsBox = document.getElementById("moments-stream");
-      momentsBox.innerHTML = `
-        <div class="moments-cover-area">
-          <img class="cover-bg" src="${contact.cover}" alt="cover">
-          <div class="user-profile-badge">
-            <span class="moments-user-name">${contact.name}</span>
-            <img class="moments-user-avatar" src="${contact.avatar}" alt="avatar">
+      let feedContent = '';
+
+      // 顶部隐私提示条（如：“朋友仅展示最近三天的朋友圈”）
+      let noticeHtml = '';
+      if (snsNotice) {
+        noticeHtml = `
+          <div style="background:#fffbeb; border:1px solid #fef3c7; color:#b45309; padding:8px 14px; font-size:11px; margin:10px 14px 4px 14px; border-radius:6px; display:flex; align-items:center; gap:6px;">
+            <span>🔒</span>
+            <span>${snsNotice}</span>
           </div>
-        </div>
-        ${contact.moments.map(m => `
+        `;
+      }
+
+      if (!moments || moments.length === 0) {
+        feedContent = `
+          <div style="text-align:center; padding:40px 20px; color:#9ca3af;">
+            <div style="font-size:34px; margin-bottom:8px;">📷</div>
+            <div style="font-size:13px; font-weight:500; color:#475569;">暂无【${contact.name}】的朋友圈动态</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:4px;">${snsNotice || '对方可能未公开朋友圈，或可点击右上角【刷新朋友圈】实时向微信请求相册'}</div>
+          </div>
+        `;
+      } else {
+        feedContent = moments.map(m => `
           <div class="moments-item">
-            <img class="moments-author-avatar" src="${contact.avatar}">
+            <img class="moments-author-avatar" src="${contact.avatar}" onclick="openContactCvProfile('${contact.wxid}')" title="点击获取【${contact.name}】详细资料与简历 (get_contact_fast)" onerror="this.src='https://i.pravatar.cc/150?img=3'">
             <div class="moments-content">
               <div class="moments-author-name">${contact.name}</div>
               <div class="moments-text">${m.content}</div>
               ${m.images && m.images.length ? `
-                <div class="moments-grid-pics">
-                  ${m.images.map(img => `<img src="${img}" alt="pic">`).join('')}
+                <div class="moments-grid-pics ${m.images.length === 1 ? 'single-pic' : ''}">
+                  ${m.images.map(img => `<img src="/api/wechat/proxy-image?url=${encodeURIComponent(img)}" alt="微信相册图片" loading="lazy" onclick="window.open('${img}', '_blank')" title="点击查看原图" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'160\' height=\'160\' viewBox=\'0 0 160 160\'><rect width=\'160\' height=\'160\' fill=\'%23f1f5f9\' rx=\'6\'/><circle cx=\'80\' cy=\'70\' r=\'20\' fill=\'%23cbd5e1\'/><path d=\'M72 70a8 8 0 1 0 16 0 8 8 0 1 0 -16 0\' fill=\'%2394a3b8\'/><text x=\'50%\' y=\'112\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\' font-size=\'11\' font-weight=\'600\' font-family=\'sans-serif\'>相册保护图</text><text x=\'50%\' y=\'130\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\' font-size=\'9\' font-family=\'sans-serif\'>请在微信内查看</text></svg>'">`).join('')}
                 </div>
               ` : ''}
               <div class="moments-meta">
@@ -1475,25 +2290,47 @@
               ` : ''}
             </div>
           </div>
-        `).join('')}
-      `;
+        `).join('');
+      }
 
-      // 4. 渲染 AI 意向画像 & 话术建议
-      const analysisBox = document.getElementById("analysis-container");
-      analysisBox.innerHTML = `
+      const coverSrc = contact.cover || 'https://picsum.photos/seed/bg1/800/260';
+
+      momentsBox.innerHTML = `
+        <div class="moments-cover-area">
+          <img class="cover-bg" src="${coverSrc}" alt="cover" onerror="this.src='https://picsum.photos/seed/bg1/800/260'">
+          <div class="user-profile-badge" onclick="openContactCvProfile('${contact.wxid || ''}')" title="点击查看【${contact.name}】详细资料与匹配简历 (get_contact_fast)">
+            <div class="moments-user-name">
+              <span>${contact.name}</span>
+              <span class="sub-hint">🔍 查资料与简历</span>
+            </div>
+            <div class="moments-avatar-container">
+              <img class="moments-user-avatar" src="${contact.avatar}" alt="avatar" onerror="this.src='https://i.pravatar.cc/150?img=3'">
+              <div class="moments-avatar-cv-chip">📄 简历档案</div>
+            </div>
+          </div>
+        </div>
+        ${noticeHtml}
+        ${feedContent}
+      `;
+    }
+
+    // 渲染 AI 分析与推荐话术
+    function renderAiInsight(insight, contact) {
+      const container = document.getElementById("analysis-container");
+      container.innerHTML = `
         <div class="insight-card">
           <div class="insight-card-title">
             <span>意向与痛点洞察</span>
-            <span style="color:#ea580c; font-weight:700;">意向指数: ${contact.aiInsight.interestLevel}</span>
+            <span style="color:#ea580c; font-weight:700;">意向指数: ${insight.interestLevel}</span>
           </div>
           <div class="radar-tags">
-            <span class="radar-tag tag-orange">${contact.tierLabel}</span>
+            <span class="radar-tag tag-orange">${contact.tierLabel || contact.tier + '级'}</span>
             <span class="radar-tag tag-blue">痛点匹配</span>
             <span class="radar-tag tag-green">具备私域潜力</span>
           </div>
           <div class="insight-text">
-            <strong>核心痛点：</strong>${contact.aiInsight.painPoint}<br><br>
-            <strong>客群画像：</strong>${contact.aiInsight.profile}
+            <strong>核心痛点：</strong>${insight.painPoint}<br><br>
+            <strong>客群画像：</strong>${insight.profile}
           </div>
         </div>
 
@@ -1501,12 +2338,12 @@
           <div class="pitch-header">
             <div style="display:flex; align-items:center; gap:6px;">
               <span>✨ AI 推荐最合适触达（链接）消息</span>
-              <span id="pitch-learned-badge" style="${contact.aiInsight?.learnedFromSample ? '' : 'display:none;'} background:#ecfdf5; color:#047857; font-size:10px; padding:1px 6px; border-radius:10px; border:1px solid #a7f3d0; font-weight:600;">✨ 已融合样本学习优化</span>
+              <span id="pitch-learned-badge" style="${insight.learnedFromSample ? '' : 'display:none;'} background:#ecfdf5; color:#047857; font-size:10px; padding:1px 6px; border-radius:10px; border:1px solid #a7f3d0; font-weight:600;">✨ 已融合样本学习优化</span>
             </div>
             <span style="font-size:11px; color:#047857;">基于对话+朋友圈定制</span>
           </div>
           
-          <div class="pitch-body" id="current-pitch-text">${contact.aiInsight.recommendedPitch}</div>
+          <div class="pitch-body" id="current-pitch-text">${insight.recommendedPitch}</div>
 
           <!-- 编辑训练样本区域 -->
           <div id="pitch-edit-box" style="display:none; padding:12px; background:#f8fafc; border-bottom:1px solid #e2e8f0;">
@@ -1542,47 +2379,385 @@
         <div class="insight-card" style="border-left: 3px solid #10b981;">
           <div class="insight-card-title" style="color:#047857;">最佳切入时机建议</div>
           <div style="font-size:12px; color:#475569; line-height:1.6;">
-            对方今日发布朋友圈表达对当前模式的焦虑，且此前主动发起过合作询问。建议在 <strong>今日 12:00~13:30 或 晚上 20:30</strong> 直接通过微信发出轻量交流邀请，切中痛点，转化率极高。
+            ${insight.timingAdvice}
           </div>
         </div>
       `;
 
-      // 5. 填入推荐草稿到文本框
-      document.getElementById("composer-text").value = contact.aiInsight.recommendedPitch;
-
-      // 重新高亮左侧
-      renderContactsList();
+      // 自动预填入发送框草稿
+      document.getElementById("composer-text").value = insight.recommendedPitch;
     }
 
-    function selectContactByWxid(wxid) {
-      const idx = contactsData.findIndex(c => c.wxid === wxid);
-      if (idx !== -1) {
-        selectContact(idx);
+    function clearView() {
+      document.getElementById("chat-header-name").innerText = "暂无匹配好友";
+      document.getElementById("chat-header-wxid").innerText = "--";
+      document.getElementById("chat-message-stream").innerHTML = "";
+      document.getElementById("moments-stream").innerHTML = "";
+      document.getElementById("analysis-container").innerHTML = `<div style="text-align:center; padding:50px; color:#9ca3af;">请选择左侧列表中的好友</div>`;
+      document.getElementById("composer-text").value = "";
+    }
+
+    // 4. 核心决策操作：【链接】/【重点】/【忽略】
+    async function decideContact(action) {
+      if (!contactsList[currentIndex]) return;
+      const contact = contactsList[currentIndex];
+      const pitch = document.getElementById("composer-text")?.value || "";
+
+      try {
+        const res = await fetch(`/api/contacts/${encodeURIComponent(contact.wxid)}/decide`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action, customPitch: pitch })
+        });
+        const result = await res.json();
+        if (result.success) {
+          contact.status = action;
+          
+          if (action === "LINKED") {
+            showToast(`✔ 已将【${contact.name}】加入【后继链接列表】(存入本地文件)`, "success");
+          } else if (action === "STARRED") {
+            showToast(`⭐ 已将【${contact.name}】标记为【重点跟进对象】(存入本地文件)`, "warning");
+          } else if (action === "IGNORED") {
+            showToast(`⚪ 已将【${contact.name}】放入【忽略列表】(存入本地文件)`, "info");
+          }
+
+          // 更新统计
+          await fetchStats();
+          renderContactsList();
+
+          // 自动平滑跳下一位
+          if (currentIndex < contactsList.length - 1) {
+            setTimeout(() => {
+              navContact(1);
+            }, 300);
+          }
+        }
+      } catch (err) {
+        showToast("保存决策失败: " + err.message, "warning");
       }
     }
 
-    // 搜索与过滤
+    // 5. 发送微信消息
+    async function sendCustomMessage() {
+      const contact = contactsList[currentIndex];
+      if (!contact) return;
+      const text = document.getElementById("composer-text").value.trim();
+      if (!text) {
+        showToast("请输入发送内容", "warning");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/wechat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wxid: contact.wxid, message: text })
+        });
+        const json = await res.json();
+        showToast(json.message || "消息已发送", "success");
+
+        // 追加到当前聊天气泡
+        if (currentContactDetail) {
+          currentContactDetail.chatHistory.push({
+            sender: "self",
+            time: "刚刚",
+            text: text
+          });
+          renderChat(currentContactDetail.chatHistory, contact);
+        }
+      } catch (err) {
+        showToast("发送失败: " + err.message, "warning");
+      }
+    }
+
+    // 6. 刷新朋友圈相册
+    async function syncMoments() {
+      const contact = contactsList[currentIndex];
+      if (!contact) return;
+      showToast("正在向微信底层 Hook 发送刷新相册指令 (sns_get_user_page2)...", "info");
+      try {
+        const res = await fetch(`/api/wechat/sync-moments?wxid=${encodeURIComponent(contact.wxid)}`, { method: 'POST' });
+        const json = await res.json();
+        showToast(json.message || "同步指令已触发", "success");
+        // 稍等 1 秒微信后台拉取入库后自动刷新当前联系人详情
+        setTimeout(() => {
+          selectContact(currentIndex);
+        }, 1200);
+      } catch (err) {
+        showToast("触发同步失败: " + err.message, "warning");
+      }
+    }
+
+    // 7. 查看与导出本地文件
+    async 
+    async function loadTrainingStats() {
+      try {
+        const res = await fetch('/api/ai/training-data');
+        if (res.ok) {
+          const data = await res.json();
+          const elem = document.getElementById('stat-training-count');
+          if (elem) elem.innerText = data.total || 0;
+        }
+      } catch (e) {}
+    }
+
+    async function showAiTrainingModal() {
+      const modal = document.getElementById("storage-modal");
+      const title = document.getElementById("modal-title");
+      const body = document.getElementById("modal-body-content");
+
+      title.innerText = "🧠 AI 触达推荐训练样本库 (本地存储: ai_training_samples.json)";
+
+      try {
+        const res = await fetch('/api/ai/training-data');
+        const result = await res.json();
+        const items = result.data || [];
+
+        if (items.length === 0) {
+          body.innerHTML = `<div style="text-align:center; padding:40px; color:#64748b;">
+            <div style="font-size:32px; margin-bottom:10px;">📚</div>
+            <div style="font-weight:600; margin-bottom:6px;">暂未沉淀任何 AI 训练样本</div>
+            <div style="font-size:12px; color:#94a3b8;">在右侧【AI 推荐最合适触达消息】卡片中点击【编辑修改 (加入AI训练)】，修改并保存后将自动沉淀为训练数据，持续优化同类好友的触达推荐！</div>
+          </div>`;
+        } else {
+          body.innerHTML = `
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#64748b;">已累计沉淀 <strong>${items.length}</strong> 条优质话术样本，模型生成推荐时已自动参考优化</span>
+              <button class="btn-pitch" onclick="copyAllTrainingData()" style="color:#0284c7; border-color:#bae6fd;">复制全部训练数据 (JSON)</button>
+            </div>
+            <div style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;">
+              ${items.map((s, idx) => `
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div>
+                      <strong style="color:#0f172a;">#${idx + 1} ${s.name}</strong>
+                      <span class="radar-tag tag-orange" style="margin-left:6px; font-size:11px;">${s.tier}级</span>
+                      ${s.remark ? `<span style="font-size:11px; color:#64748b; margin-left:6px;">(${s.remark})</span>` : ''}
+                    </div>
+                    <span style="font-size:11px; color:#94a3b8;">保存时间: ${s.savedTime || ''}</span>
+                  </div>
+                  ${s.originalPitch ? `
+                    <div style="font-size:11px; color:#64748b; margin-bottom:6px; background:#f1f5f9; padding:6px 10px; border-radius:4px;">
+                      <span style="font-weight:600; color:#475569;">原系统推荐：</span>${s.originalPitch}
+                    </div>
+                  ` : ''}
+                  <div style="font-size:12px; color:#0f172a; background:#f0fdf4; border-left:3px solid #10b981; padding:8px 10px; border-radius:4px; line-height:1.6;">
+                    <div style="font-weight:600; color:#065f46; margin-bottom:2px;">✨ 人工精修优秀范本（训练语料）：</div>
+                    ${s.editedPitch}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+        modal.style.display = "flex";
+      } catch (err) {
+        showToast("加载训练样本失败: " + err.message, "error");
+      }
+    }
+
+    async function copyAllTrainingData() {
+      try {
+        const res = await fetch('/api/ai/training-data');
+        const result = await res.json();
+        await navigator.clipboard.writeText(JSON.stringify(result.data, null, 2));
+        showToast("已成功复制全部训练数据 (JSON) 到剪贴板！", "success");
+      } catch (err) {
+        showToast("复制失败: " + err.message, "error");
+      }
+    }
+  
+    async function showStorageModal(type) {
+      const modal = document.getElementById("storage-modal");
+      const title = document.getElementById("modal-title");
+      const body = document.getElementById("modal-body-content");
+
+      const typeMap = {
+        linked: "后继链接列表 (本地存储: linked_contacts.json)",
+        starred: "重点跟进列表 (本地存储: starred_contacts.json)",
+        ignored: "忽略列表 (本地存储: ignored_contacts.json)",
+        all: "所有已决策本地记录概览"
+      };
+
+      title.innerText = typeMap[type] || "本地存储文件查看";
+
+      let fetchType = type === 'all' ? 'linked' : type;
+
+      try {
+        const res = await fetch(`/api/storage/${fetchType}`);
+        const result = await res.json();
+        const items = result.data || [];
+
+        if (items.length === 0) {
+          body.innerHTML = `<div style="text-align:center; padding:30px; color:#9ca3af;">当前本地文件 (${result.filePath}) 暂无记录。请先在工作台点击【链接】、【重点】或【忽略】操作。</div>`;
+        } else {
+          body.innerHTML = `
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#64748b;">本地文件路径: <code>${result.filePath}</code> (共 ${items.length} 条记录)</span>
+              <a href="/api/storage/${fetchType}/export" download class="btn-pitch primary" style="text-decoration:none;">下载 JSON 文件</a>
+            </div>
+            <table class="table-list">
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>wxid</th>
+                  <th>评级</th>
+                  <th>备注</th>
+                  <th>推荐触达消息</th>
+                  <th>记录时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(it => `
+                  <tr>
+                    <td><strong>${it.name}</strong></td>
+                    <td><code>${it.wxid}</code></td>
+                    <td>${it.tier}级</td>
+                    <td>${it.remark || '--'}</td>
+                    <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${it.pitch}">${it.pitch || '--'}</td>
+                    <td><span style="font-size:11px; color:#94a3b8;">${it.savedTime}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+        modal.classList.add("open");
+      } catch (err) {
+        showToast("读取存储文件失败: " + err.message, "warning");
+      }
+    }
+
+    function closeStorageModal() {
+      document.getElementById("storage-modal").classList.remove("open");
+    }
+
+    // 8. 获取 WxDatas 中的 Excel 文件列表并填充下拉框
+    async function loadExcelFiles() {
+      try {
+        const res = await fetch('/api/excel/files');
+        const data = await res.json();
+        const select = document.getElementById("excel-file-select");
+        if (!select) return;
+
+        if (data.currentHookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.currentHookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.currentHookUrl}`;
+          }
+        }
+
+        select.innerHTML = "";
+        if (!data.files || data.files.length === 0) {
+          select.innerHTML = '<option value="">(WxDatas 目录无 Excel 文件)</option>';
+          return;
+        }
+
+        data.files.forEach(f => {
+          const opt = document.createElement("option");
+          opt.value = f.fileName;
+          opt.dataset.hook = f.hookUrl || '';
+          opt.textContent = `${f.fileName}  [${f.hookUrl || ''}]`;
+          opt.title = `文件名: ${f.fileName}\n对应Hook接口: ${f.hookUrl}\n文件大小: ${f.fileSizeFormatted}\n修改时间: ${f.lastModifiedFormatted || f.lastModified}`;
+          if (f.isCurrent || f.fileName === data.currentFile) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("加载 Excel 文件列表异常:", err);
+      }
+    }
+
+    // 9. 响应下拉切换指定 Excel 文件
+    async function onExcelFileChanged(fileName) {
+      if (!fileName) return;
+      showToast(`正在切换并载入【${fileName}】...`, "info");
+      const reloadBtn = document.getElementById("btn-reload-excel");
+      if (reloadBtn) reloadBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/excel/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: fileName })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "切换 Excel 失败");
+        }
+        if (data.hookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.hookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.hookUrl}`;
+          }
+        }
+        currentIndex = 0;
+        await fetchStats();
+        await fetchContacts();
+        showToast(`🎉 成功载入【${fileName}】\n对接 Hook 接口 -> ${data.hookUrl}（共 ${data.totalContacts} 人）`, "success");
+      } catch (err) {
+        showToast("切换失败: " + err.message, "warning");
+      } finally {
+        if (reloadBtn) reloadBtn.disabled = false;
+      }
+    }
+
+    // 10. 重新加载当前选中的 Excel
+    async function refreshAllData() {
+      const select = document.getElementById("excel-file-select");
+      const selectedFileName = select ? select.value : "";
+      showToast("正在重新解析 Excel 并刷新缓存...", "info");
+      const reloadBtn = document.getElementById("btn-reload-excel");
+      if (reloadBtn) reloadBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/contacts/reload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: selectedFileName })
+        });
+        const data = await res.json();
+        if (data.hookUrl) {
+          const badge = document.getElementById("hook-url-badge");
+          if (badge) {
+            badge.innerText = `🔗 ${data.hookUrl}`;
+            badge.title = `当前连接的微信 Hook 接口: ${data.hookUrl}`;
+          }
+        }
+        await loadExcelFiles();
+        await fetchStats();
+        await fetchContacts();
+        showToast(`Excel 刷新成功！共 ${data.totalContacts || 0} 位意向好友 (Hook: ${data.hookUrl})`, "success");
+      } catch (err) {
+        showToast("刷新失败: " + err.message, "warning");
+      } finally {
+        if (reloadBtn) reloadBtn.disabled = false;
+      }
+    }
+
+    // 辅助工具与快捷键
     function handleSearch(val) {
       currentSearchText = val;
-      renderContactsList();
+      fetchContacts();
     }
 
     function filterTier(tier, el) {
       currentFilterTier = tier;
       document.querySelectorAll(".tier-chip").forEach(c => c.classList.remove("active"));
       el.classList.add("active");
-      renderContactsList();
+      fetchContacts();
     }
 
-    // 上一位 / 下一位导航
     function navContact(delta) {
       let nextIdx = currentIndex + delta;
       if (nextIdx < 0) nextIdx = 0;
-      if (nextIdx >= contactsData.length) nextIdx = contactsData.length - 1;
+      if (nextIdx >= contactsList.length) nextIdx = contactsList.length - 1;
       selectContact(nextIdx);
     }
 
-    // 话术操作
     
     function startEditPitch() {
       const textElem = document.getElementById("current-pitch-text");
@@ -1609,8 +2784,7 @@
         return;
       }
 
-      const contact = mockContacts[currentIndex];
-      if (!contact) {
+      if (!currentContactDetail || !currentContactDetail.contact) {
         showToast("当前未选中联系人", "error");
         return;
       }
@@ -1621,54 +2795,50 @@
       btn.innerText = "正在保存微调数据...";
 
       try {
-        // 同步内存数据
-        if (contact.aiInsight) {
-          contact.aiInsight.recommendedPitch = newPitch;
-          contact.aiInsight.learnedFromSample = true;
-        }
-        document.getElementById("current-pitch-text").innerText = newPitch;
+        const contact = currentContactDetail.contact;
+        const insight = currentContactDetail.aiInsight || {};
+        const payload = {
+          wxid: contact.wxid,
+          name: contact.name,
+          remark: contact.remark,
+          tier: contact.tier,
+          originalPitch: insight.recommendedPitch || "",
+          editedPitch: newPitch,
+          painPoint: insight.painPoint || "",
+          profile: insight.profile || ""
+        };
 
-        // 同步更新到微信消息输入框
-        const composer = document.getElementById("composer-text");
-        if (composer) {
-          composer.value = newPitch;
-        }
-
-        // 保存到 localStorage 作为演示持久化
-        try {
-          const key = "ai_training_samples";
-          const samples = JSON.parse(localStorage.getItem(key) || "[]");
-          samples.unshift({
-            wxid: contact.wxid,
-            name: contact.name,
-            tier: contact.tier,
-            editedPitch: newPitch,
-            savedTime: new Date().toLocaleString()
-          });
-          localStorage.setItem(key, JSON.stringify(samples));
-        } catch(e) {}
-
-        // 如果后端服务在运行，同时提交给后端保存
-        fetch("/api/ai/training-data", {
+        const res = await fetch("/api/ai/training-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wxid: contact.wxid,
-            name: contact.name,
-            remark: contact.remark,
-            tier: contact.tier,
-            originalPitch: contact.aiInsight?.recommendedPitch || "",
-            editedPitch: newPitch,
-            painPoint: contact.aiInsight?.painPoint || "",
-            profile: contact.aiInsight?.profile || ""
-          })
-        }).catch(() => {});
+          body: JSON.stringify(payload)
+        });
 
-        const badge = document.getElementById("pitch-learned-badge");
-        if (badge) badge.style.display = "inline-block";
+        const data = await res.json();
+        if (res.ok && data.success) {
+          // 1. 同步内存及推荐文案
+          if (currentContactDetail.aiInsight) {
+            currentContactDetail.aiInsight.recommendedPitch = newPitch;
+            currentContactDetail.aiInsight.learnedFromSample = true;
+          }
+          document.getElementById("current-pitch-text").innerText = newPitch;
 
-        cancelEditPitch();
-        showToast("🎉 已保存为 AI 训练样本！后续相同意向画像的建议已自动应用优化策略", "success");
+          // 2. 自动同步更新到微信消息输入框
+          const composer = document.getElementById("composer-text");
+          if (composer) {
+            composer.value = newPitch;
+          }
+
+          // 3. 亮起“已融合样本学习优化”标签
+          const badge = document.getElementById("pitch-learned-badge");
+          if (badge) badge.style.display = "inline-block";
+
+          cancelEditPitch();
+          showToast(`🎉 已保存为 AI 训练样本（累计 ${data.totalCount} 条优质样本）！模型将持续优化推荐话术`, "success");
+          loadTrainingStats();
+        } else {
+          showToast(data.message || "保存训练样本失败", "error");
+        }
       } catch (err) {
         showToast("保存失败: " + err.message, "error");
       } finally {
@@ -1691,82 +2861,6 @@
       showToast("已填入微信消息输入框", "info");
     }
 
-    // 发送自定义消息（通过微信 Hook）
-    function sendCustomMessage() {
-      const text = document.getElementById("composer-text").value.trim();
-      if (!text) {
-        showToast("请输入消息内容", "warning");
-        return;
-      }
-      const contact = contactsData[currentIndex];
-      contact.chatHistory.push({
-        sender: "self",
-        time: "刚刚",
-        text: text
-      });
-      selectContact(currentIndex);
-      showToast(`已向 【${contact.name}】 发送消息 (Hook API: send_text_msg)`, "success");
-    }
-
-    function syncMoments() {
-      showToast("正在通过 Hook 接口拉取朋友圈相册 (/api/sns_get_user_page2)...", "info");
-      setTimeout(() => {
-        showToast("朋友圈相册数据同步完毕！", "success");
-      }, 900);
-    }
-
-    // ================= 核心决策操作：链接 / 重点 / 忽略 =================
-    function decideContact(action) {
-      const contact = contactsData[currentIndex];
-      contact.status = action;
-
-      // 移除原列表中旧数据
-      storageDb.linked = storageDb.linked.filter(x => x.wxid !== contact.wxid);
-      storageDb.starred = storageDb.starred.filter(x => x.wxid !== contact.wxid);
-      storageDb.ignored = storageDb.ignored.filter(x => x.wxid !== contact.wxid);
-
-      const recordItem = {
-        wxid: contact.wxid,
-        name: contact.name,
-        remark: contact.remark,
-        tier: contact.tier,
-        pitch: contact.aiInsight.recommendedPitch,
-        savedTime: new Date().toLocaleString()
-      };
-
-      if (action === "LINKED") {
-        storageDb.linked.push(recordItem);
-        localStorage.setItem('wx_analysis_linked', JSON.stringify(storageDb.linked));
-        showToast(`✔ 已将【${contact.name}】加入【后继链接列表】(已自动保存本地文件)`, "success");
-      } else if (action === "STARRED") {
-        storageDb.starred.push(recordItem);
-        localStorage.setItem('wx_analysis_starred', JSON.stringify(storageDb.starred));
-        showToast(`⭐ 已将【${contact.name}】标记为【重点跟进对象】(已自动保存本地文件)`, "warning");
-      } else if (action === "IGNORED") {
-        storageDb.ignored.push(recordItem);
-        localStorage.setItem('wx_analysis_ignored', JSON.stringify(storageDb.ignored));
-        showToast(`⚪ 已将【${contact.name}】放入【忽略列表】(已自动保存本地文件)`, "info");
-      }
-
-      updateStats();
-      renderContactsList();
-
-      // 自动平滑进入下一位好友
-      if (currentIndex < contactsData.length - 1) {
-        setTimeout(() => {
-          navContact(1);
-        }, 350);
-      }
-    }
-
-    // 更新统计栏
-    function updateStats() {
-      document.getElementById("stat-linked-count").innerText = storageDb.linked.length;
-      document.getElementById("stat-starred-count").innerText = storageDb.starred.length;
-      document.getElementById("stat-ignored-count").innerText = storageDb.ignored.length;
-    }
-
-    // Toast 提示
     function showToast(msg, type = "info") {
       const box = document.getElementById("toast-box");
       const toast = document.createElement("div");
@@ -1780,93 +2874,345 @@
       }, 3000);
     }
 
-    // 模态窗展示本地文件
-    function showStorageModal(type) {
-      const modal = document.getElementById("storage-modal");
-      const title = document.getElementById("modal-title");
-      const body = document.getElementById("modal-body-content");
-
-      let items = [];
-      let label = "";
-
-      if (type === "linked") {
-        label = "后继链接列表 (本地存储: linked_contacts.json)";
-        items = storageDb.linked;
-      } else if (type === "starred") {
-        label = "重点跟进列表 (本地存储: starred_contacts.json)";
-        items = storageDb.starred;
-      } else if (type === "ignored") {
-        label = "已忽略列表 (本地存储: ignored_contacts.json)";
-        items = storageDb.ignored;
-      } else {
-        label = "本地持久化文件管理概览";
-        items = [...storageDb.linked, ...storageDb.starred, ...storageDb.ignored];
+    // ========================================================
+    // 图1 -> 图2: 点击头像调用 get_contact_fast 获取资料并匹配 D:\CVs 简历
+    // ========================================================
+    async function openContactCvProfile(wxid, optionalFilePath = null) {
+      if (!wxid || wxid === 'undefined' || wxid === 'null' || wxid === '') {
+        if (currentContactDetail && currentContactDetail.contact && currentContactDetail.contact.wxid) {
+          wxid = currentContactDetail.contact.wxid;
+        } else if (contactsList.length > 0 && contactsList[currentIndex] && contactsList[currentIndex].wxid) {
+          wxid = contactsList[currentIndex].wxid;
+        } else {
+          wxid = 'huyi1206';
+        }
       }
 
-      title.innerText = label;
+      console.log("[CV-Profile] 触发查看履历资料弹窗, 目标 wxid:", wxid);
 
-      if (items.length === 0) {
-        body.innerHTML = `<div style="text-align:center; padding:30px; color:#9ca3af;">当前文件列表中暂无记录。请先在主界面点击【链接】、【重点】或【忽略】按钮添加。</div>`;
+      // 强制打开模态框，并显示加载中状态
+      const modal = document.getElementById("cv-profile-modal");
+      if (modal) {
+        modal.style.display = "flex";
+        modal.style.zIndex = "99999";
+      }
+      renderCvModalLoading(wxid);
+
+      try {
+        let url = `/api/contacts/${encodeURIComponent(wxid)}/cv-profile`;
+        if (optionalFilePath) {
+          url += `?filePath=${encodeURIComponent(optionalFilePath)}`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("获取好友资料及简历失败: " + res.statusText);
+        const cvData = await res.json();
+        window.currentCvData = cvData;
+        currentCvData = cvData;
+        console.log("[CV-Profile] 成功获取并渲染候选人资料:", cvData);
+        renderCvModalData(cvData);
+      } catch (err) {
+        console.error("加载简历档案失败:", err);
+        showToast("加载简历档案失败: " + err.message, "danger");
+        const evalBox = document.getElementById("cv-self-eval-text");
+        if (evalBox) {
+          evalBox.innerHTML = `<span style="color:#ef4444;">❌ 加载失败: ${err.message}</span>`;
+        }
+      }
+    }
+
+    function renderCvModalLoading(wxid) {
+      document.getElementById("cv-title-name").innerText = "正在获取好友资料...";
+      document.getElementById("cv-tag-age").innerText = "--";
+      document.getElementById("cv-tag-role").innerText = "查询中";
+      document.getElementById("cv-tag-status").innerText = "正在调用 get_contact_fast";
+      document.getElementById("cv-salary-text").innerText = "加载中...";
+      document.getElementById("cv-self-eval-text").innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; color:#94a3b8;">
+          <div class="loading-spin" style="width:20px; height:20px; border-color:#38bdf8; border-top-color:transparent;"></div>
+          <span>正在调用微信底层接口 /api/get_contact_fast 并检索 D:\\CVs 简历库...</span>
+        </div>
+      `;
+      document.getElementById("cv-bullets-list").innerHTML = '';
+      document.getElementById("cv-work-timeline").innerHTML = '';
+    }
+
+    function renderCvModalData(cv) {
+      if (!cv) return;
+      window.currentCvData = cv;
+      currentCvData = cv;
+      try {
+        // 头部
+        const badgeElem = document.getElementById("cv-avatar-badge");
+      if (cv.fastInfo && cv.fastInfo.smallHeadImgUrl) {
+        badgeElem.innerHTML = `<img src="${cv.fastInfo.smallHeadImgUrl}" alt="avatar" onerror="this.parentElement.innerText='${cv.avatarChar || 'A'}'" />`;
+      } else if (cv.avatarUrl) {
+        badgeElem.innerHTML = `<img src="${cv.avatarUrl}" alt="avatar" onerror="this.parentElement.innerText='${cv.avatarChar || 'A'}'" />`;
       } else {
-        body.innerHTML = `
-          <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:12px; color:#64748b;">共计 ${items.length} 条记录，实时同步在本地文件系统中。</span>
-            <button class="btn-pitch primary" onclick="exportDataAsFile('${type}')">导出为 JSON / CSV</button>
+        badgeElem.innerText = cv.avatarChar || 'A';
+      }
+
+      document.getElementById("cv-title-name").innerText = cv.name || '候选人';
+      document.getElementById("cv-tag-age").innerText = cv.age || '21岁';
+      document.getElementById("cv-tag-role").innerText = cv.jobTitle || '会计主管';
+      document.getElementById("cv-tag-status").innerText = cv.workStatus || '离校-正在找工作';
+
+      document.getElementById("cv-badge-loc").innerText = `📍 ${cv.location || '上海'}`;
+      document.getElementById("cv-badge-edu").innerText = `🎓 ${cv.education ? cv.education.split('·')[0].trim() : '本科'}`;
+      document.getElementById("cv-badge-match").innerText = `⚡ ${cv.matchRate || '95% 匹配'}`;
+
+      document.getElementById("cv-salary-text").innerText = cv.expectedSalary || '11-22K';
+      document.getElementById("cv-match-badge").innerText = cv.matchRate || '95% 匹配度';
+
+      // 个人优势 & 自我评价 (图2 左上卡片)
+      document.getElementById("cv-self-eval-text").innerText = cv.selfEvaluation || '暂无详细描述';
+      const bulletsList = document.getElementById("cv-bullets-list");
+      if (cv.highlightBullets && cv.highlightBullets.length > 0) {
+        bulletsList.innerHTML = cv.highlightBullets.map(b => `
+          <div class="cv-bullet-item">
+            <span class="cv-bullet-dot">✔</span>
+            <span>${b}</span>
           </div>
-          <table class="table-list">
-            <thead>
-              <tr>
-                <th>姓名/称呼</th>
-                <th>wxid</th>
-                <th>意向等级</th>
-                <th>备注/身份</th>
-                <th>推荐触达话术预览</th>
-                <th>操作时间</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${items.map(it => `
-                <tr>
-                  <td><strong>${it.name}</strong></td>
-                  <td><code style="background:#f1f5f9; padding:2px 4px; border-radius:3px;">${it.wxid}</code></td>
-                  <td>${it.tier || 'S'}级</td>
-                  <td>${it.remark || '--'}</td>
-                  <td style="max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${it.pitch}">${it.pitch || '--'}</td>
-                  <td><span style="font-size:11px; color:#94a3b8;">${it.savedTime}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        `).join('');
+      } else {
+        bulletsList.innerHTML = `
+          <div class="cv-bullet-item"><span class="cv-bullet-dot">✔</span><span>善于有目标有计划的工作、学习和生活，执行力强。</span></div>
+          <div class="cv-bullet-item"><span class="cv-bullet-dot">✔</span><span>思维敏锐、反应迅速、沟通表达能力强。</span></div>
         `;
       }
 
-      modal.classList.add("open");
+      // 工作经历与项目 (图2 左下卡片)
+      const workTimeline = document.getElementById("cv-work-timeline");
+      let workHtml = '';
+      if (cv.workExperiences && cv.workExperiences.length > 0) {
+        workHtml += cv.workExperiences.map(w => `
+          <div class="cv-timeline-item">
+            <div class="cv-item-header">
+              <span class="cv-item-title">${w.company} · ${w.role}</span>
+              <span class="cv-item-dur">${w.duration}</span>
+            </div>
+            ${w.salary ? `<div class="cv-item-sal">${w.salary}</div>` : ''}
+            <div class="cv-item-desc">${w.description}</div>
+          </div>
+        `).join('');
+      }
+
+      if (cv.projects && cv.projects.length > 0) {
+        workHtml += cv.projects.map(p => `
+          <div class="cv-timeline-item" style="border-left: 3px solid #6366f1;">
+            <div class="cv-item-header">
+              <span class="cv-item-title">🚀 项目：${p.projectName}</span>
+              <span class="cv-item-dur">${p.duration}</span>
+            </div>
+            <div class="cv-item-desc">${p.description}</div>
+          </div>
+        `).join('');
+      }
+
+      workTimeline.innerHTML = workHtml || `<div style="color:#64748b; font-size:12px;">暂无经历记录</div>`;
+
+      // 图片原件展示（若为图片）
+      const imgCard = document.getElementById("cv-image-preview-card");
+      if (cv.isImage && cv.filePath) {
+        imgCard.style.display = "block";
+        document.getElementById("cv-preview-img").src = `/api/cv/download?filePath=${encodeURIComponent(cv.filePath)}`;
+      } else {
+        imgCard.style.display = "none";
+      }
+
+      // 右侧基本信息
+      document.getElementById("cv-info-phone").innerText = cv.phone || '18621284870';
+      document.getElementById("cv-info-email").innerText = cv.email || '未填';
+      document.getElementById("cv-info-location").innerText = cv.location || '上海';
+      document.getElementById("cv-info-intended").innerText = cv.intendedCity || '广州 / 深圳';
+      document.getElementById("cv-info-edu").innerText = cv.education || '本科 · 重点院校';
+      document.getElementById("cv-info-hukou").innerText = cv.hukou || '未披露';
+      document.getElementById("cv-info-pol").innerText = cv.politicalStatus || '群众';
+
+      // 微信底层信息
+      const fast = cv.fastInfo || {};
+      const cont = cv.contact || {};
+      document.getElementById("cv-wx-username").innerText = fast.userName || cont.realWxid || cont.wxid || '--';
+      document.getElementById("cv-wx-nickname").innerText = fast.nickname || cont.nickname || cont.name || '--';
+      document.getElementById("cv-wx-remark").innerText = fast.remark || cont.remark || '(无备注)';
+      document.getElementById("cv-wx-source").innerText = fast.source === 'HookApi' ? '✅ 微信 Hook 实时获取' : '📂 透视表缓存';
+      document.getElementById("cv-wx-source").style.color = fast.source === 'HookApi' ? '#10b981' : '#f59e0b';
+
+      const fileElem = document.getElementById("cv-matched-file-name");
+      fileElem.innerText = cv.fileName || '未找到文件';
+      fileElem.title = cv.filePath || '';
+
+      const reasonElem = document.getElementById("cv-match-reason");
+      if (reasonElem) {
+        reasonElem.innerText = cv.matchReason || (cv.found ? '精准匹配' : '未找到文件');
+        reasonElem.style.color = cv.found ? '#38bdf8' : '#94a3b8';
+      }
+
+      // 候选多版本简历
+      const altCard = document.getElementById("cv-alt-files-card");
+      if (cv.alternativeFiles && cv.alternativeFiles.length > 0) {
+        altCard.style.display = "block";
+        document.getElementById("cv-alt-count").innerText = cv.alternativeFiles.length;
+        document.getElementById("cv-alt-files-list").innerHTML = cv.alternativeFiles.map(af => `
+          <div class="cv-alt-chip" onclick="openContactCvProfile('${cont.wxid || fast.wxid}', '${af.filePath.replace(/\\/g, '\\\\')}')" title="点击切换至此简历文件">
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${af.fileName}</span>
+            <span style="color:#64748b; font-size:10px;">${af.sizeFormatted}</span>
+          </div>
+        `).join('');
+      } else {
+        altCard.style.display = "none";
+      }
+    } catch (renderErr) {
+      console.error("[CV-Profile] 渲染数据时捕获异常:", renderErr);
+    }
+  }
+
+    function closeCvModal() {
+      const modal = document.getElementById("cv-profile-modal");
+      if (modal) modal.style.display = "none";
     }
 
-    function closeStorageModal() {
-      document.getElementById("storage-modal").classList.remove("open");
+    function handleCvModalOverlayClick(e) {
+      if (e.target && e.target.id === "cv-profile-modal") {
+        closeCvModal();
+      }
     }
 
-    function exportDataAsFile(type) {
-      showToast(`已生成并导出本地文件: ${type}_export_${Date.now()}.json`, "success");
+    async function openCurrentCvOriginal() {
+      if (!currentCvData || !currentCvData.filePath) {
+        showToast("当前暂无本地简历文件路径", "warning");
+        return;
+      }
+      try {
+        const res = await fetch('/api/cv/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: currentCvData.filePath })
+        });
+        const json = await res.json();
+        showToast(json.message, json.success ? "success" : "warning");
+      } catch (err) {
+        showToast("调用打开失败: " + err.message, "danger");
+      }
     }
 
-    function refreshAllData() {
-      showToast("正在重新同步 Excel 数据与微信数据库...", "info");
-      setTimeout(() => {
-        showToast("同步完成！共载入 1,270 位好友（已自动剔除E级僵尸粉）", "success");
-      }, 600);
+    async function exploreCurrentCvFolder() {
+      if (!currentCvData || !currentCvData.filePath) {
+        showToast("当前暂无本地简历文件路径", "warning");
+        return;
+      }
+      try {
+        const res = await fetch('/api/cv/explore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: currentCvData.filePath })
+        });
+        const json = await res.json();
+        showToast(json.message, json.success ? "success" : "warning");
+      } catch (err) {
+        showToast("调用定位失败: " + err.message, "danger");
+      }
     }
 
-    // 快捷键支持：键盘左右键翻页
+    function downloadCurrentCvFile() {
+      if (!currentCvData || !currentCvData.filePath) {
+        showToast("当前暂无本地简历文件路径", "warning");
+        return;
+      }
+      window.open(`/api/cv/download?filePath=${encodeURIComponent(currentCvData.filePath)}`, '_blank');
+    }
+
+    function copyCvSummaryToClipboard() {
+      if (!currentCvData) return;
+      const cv = currentCvData;
+      const text = `【候选人简历摘要】\n姓名：${cv.name} (${cv.age || ''})\n意向职位：${cv.jobTitle}\n期望薪资：${cv.expectedSalary}\n联系电话：${cv.phone}\n电子邮箱：${cv.email}\n最高学历：${cv.education}\n现居住地：${cv.location}\n个人优势：${cv.selfEvaluation}\n匹配源文件：${cv.fileName}`;
+      copyText(text, "简历摘要全文");
+    }
+
+    function copyText(txt, label) {
+      if (!txt) return;
+      navigator.clipboard.writeText(txt).then(() => {
+        showToast(`已成功复制${label}到剪贴板`, "success");
+      }).catch(() => {
+        const input = document.createElement("textarea");
+        input.value = txt;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+        showToast(`已成功复制${label}到剪贴板`, "success");
+      });
+    }
+
+    function triggerCvWechatChat() {
+      closeCvModal();
+      const input = document.getElementById("composer-text");
+      if (input && currentCvData) {
+        input.focus();
+        if (!input.value) {
+          input.value = `你好呀${currentCvData.name}，在微信看到你的履历，想和你交流下副业微创业合作的机会~`;
+        }
+      }
+    }
+
+    function triggerCvDecide(action) {
+      closeCvModal();
+      decideContact(action);
+    }
+
+    function triggerCvAiInsight() {
+      closeCvModal();
+      const container = document.getElementById("analysis-container");
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth' });
+        showToast("已定位至右侧 AI 智能分析画像与触达建议面板", "success");
+      }
+    }
+
+    function switchCvTab(tabKey, btn) {
+      document.querySelectorAll(".cv-nav-chip").forEach(c => c.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+
+      const cardAdvantage = document.getElementById("cv-card-advantage");
+      const cardWork = document.getElementById("cv-card-work");
+
+      if (tabKey === 'ALL') {
+        cardAdvantage.style.display = "block";
+        cardWork.style.display = "block";
+      } else if (tabKey === 'ADVANTAGE' || tabKey === 'EVAL') {
+        cardAdvantage.style.display = "block";
+        cardWork.style.display = "none";
+      } else if (tabKey === 'WORK' || tabKey === 'PROJECT' || tabKey === 'EDU' || tabKey === 'INTENT') {
+        cardAdvantage.style.display = "none";
+        cardWork.style.display = "block";
+      }
+    }
+
+    // 快捷键翻页与 Esc 键关闭
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeCvModal();
+        closeStorageModal();
+        return;
+      }
       if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
       if (e.key === "ArrowLeft") navContact(-1);
       if (e.key === "ArrowRight") navContact(1);
     });
 
-    // 启动
-    init();
+    // 全局委托：无论点击头像、头像外框、候选人姓名，都能100%可靠触发 (get_contact_fast)
+    document.addEventListener("click", function(e) {
+      const trigger = e.target.closest(".user-profile-badge, .moments-user-avatar, .moments-avatar-container, .moments-user-name");
+      if (trigger && !e.target.closest("#cv-profile-modal")) {
+        const wxid = (currentContactDetail && currentContactDetail.contact && currentContactDetail.contact.wxid)
+          || (contactsList && contactsList[currentIndex] && contactsList[currentIndex].wxid)
+          || 'huyi1206';
+        console.log("[Global Click] 捕获到头像/姓名区域点击，触发资料与简历弹窗, wxid:", wxid);
+        openContactCvProfile(wxid);
+      }
+    });
+
+    window.onload = init;
   </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -16,6 +16,7 @@ public class ContactItem
     public string LastActive { get; set; } = "近期";
     public string Avatar { get; set; } = string.Empty;
     public string Cover { get; set; } = string.Empty;
+    public string? RealWxid { get; set; }
 }
 
 public class ChatMessage
@@ -28,17 +29,70 @@ public class ChatMessage
 
 public class MomentComment
 {
-    public string User { get; set; } = string.Empty;
-    public string Text { get; set; } = string.Empty;
+    public long CommentId { get; set; }
+    public string User { get; set; } = string.Empty; // 评论者昵称
+    public string? UserName { get; set; } // 评论者 wxid
+    public string Text { get; set; } = string.Empty; // 评论内容
+    public string? ReplyToUser { get; set; } // 被回复者昵称
+    public string? ReplyToUserName { get; set; } // 被回复者 wxid
+    public long ReplyCommentId { get; set; } // 被回复的评论 ID
+    public string? Time { get; set; } // 评论时间
+    public bool IsSelf { get; set; } // 是否为本人评论
 }
 
 public class MomentItem
 {
+    public string Id { get; set; } = string.Empty; // 朋友圈唯一 sns_id
     public string Date { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public List<string> Images { get; set; } = new();
     public List<string> Likes { get; set; } = new();
     public List<MomentComment> Comments { get; set; } = new();
+
+    // 朋友圈发布者信息 (多发布者时间线支持)
+    public string? UserName { get; set; } // 发布者 wxid (to_wxid)
+    public string? Nickname { get; set; }
+    public string? Avatar { get; set; }
+    public string? Tier { get; set; }
+    public string? Remark { get; set; }
+
+    // 点赞与评论状态标记
+    public bool IsLiked { get; set; }
+    public int LikeCount { get; set; }
+    public int CommentCount { get; set; }
+}
+
+public class SnsLikeRequest
+{
+    public string SnsId { get; set; } = string.Empty;
+    public string ToWxid { get; set; } = string.Empty;
+}
+
+public class SnsCommentRequest
+{
+    public string SnsId { get; set; } = string.Empty;
+    public string ToWxid { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public class SnsReplyRequest
+{
+    public string SnsId { get; set; } = string.Empty;
+    public long CommentId { get; set; }
+    public string Content { get; set; } = string.Empty;
+}
+
+public class SnsDeleteCommentRequest
+{
+    public string SnsId { get; set; } = string.Empty;
+    public string CommentId { get; set; } = string.Empty;
+}
+
+public class SnsNextPageRequest
+{
+    public string LastItemId { get; set; } = string.Empty;
+    public string? FirstPageMd5 { get; set; }
+    public string? Session { get; set; }
 }
 
 public class AiInsight

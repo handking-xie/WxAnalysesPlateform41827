@@ -419,13 +419,15 @@ public class ContactService : IContactService
     public async Task<ContactItem?> GetContactByWxidAsync(string wxid)
     {
         var all = EnsureCache();
-        var found = all.FirstOrDefault(c => string.Equals(c.Wxid, wxid, StringComparison.OrdinalIgnoreCase));
+        var found = all.FirstOrDefault(c => string.Equals(c.Wxid, wxid, StringComparison.OrdinalIgnoreCase)
+                                         || (!string.IsNullOrEmpty(c.RealWxid) && string.Equals(c.RealWxid, wxid, StringComparison.OrdinalIgnoreCase)));
         if (found == null) return null;
 
-        var status = await _storageService.GetStatusForWxidAsync(wxid);
+        var status = await _storageService.GetStatusForWxidAsync(found.Wxid);
         return new ContactItem
         {
             Wxid = found.Wxid,
+            RealWxid = found.RealWxid,
             Name = found.Name,
             Nickname = found.Nickname,
             Remark = found.Remark,
