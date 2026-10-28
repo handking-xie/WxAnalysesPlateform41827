@@ -2242,6 +2242,9 @@
             <button class="btn-header" id="btn-moments-cv" style="height:26px; padding:0 10px; font-size:11px; background:#0284c7; color:#fff; border-color:#0284c7; font-weight:600; cursor:pointer;" onclick="openContactCvProfile()" title="点击获取详细资料与简历 (get_contact_fast)">
               📄 资料/简历
             </button>
+            <button class="btn-header" id="btn-back-timeline" style="display:none; height:26px; padding:0 8px; font-size:11px; color:#475569; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; font-weight:500;" onclick="switchToHomeTimeline()" title="返回朋友圈动态时间线">
+              🏠 返回动态流
+            </button>
             <button class="btn-header" id="btn-moments-sync" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
               🔄 刷新朋友圈
             </button>
@@ -2567,7 +2570,8 @@
 
     // 微信朋友圈交互运行时状态
     let myWxProfile = { wxid: '', nickname: '我' };
-    let currentMomentsList = [];
+    let rawHomeMomentsList = []; // 完整缓存的时间线朋友圈数据 (包含 first-page 与多页 next-page)
+    let currentMomentsList = []; // 当前视图渲染或过滤呈现的朋友圈数据
     let currentMomentsContact = null;
     let activeComposerTarget = {}; // { [snsId]: { commentId, replyToUser, toWxid } }
     let momentsPagination = {
@@ -2577,6 +2581,67 @@
       session: '',
       lastItemId: ''
     };
+    let tierAutoLoadCount = 0; // 切换分类时自动拉取下一页的重试计数器
+
+    // 全局联系人缓存映射表 (用于朋友圈跨分类即时匹配评级、头像与一键私信)
+    let allContactsList = [];
+    let allContactsMap = new Map();
+
+    async function initAllContactsCache() {
+      try {
+        const res = await fetch('/api/contacts?tier=ALL');
+        if (res.ok) {
+          const json = await res.json();
+          allContactsList = json.data || [];
+          allContactsMap.clear();
+          for (const c of allContactsList) {
+            if (c.wxid) allContactsMap.set(String(c.wxid).trim().toLowerCase(), c);
+            if (c.realWxid) allContactsMap.set(String(c.realWxid).trim().toLowerCase(), c);
+            if (c.name) allContactsMap.set(String(c.name).trim().toLowerCase(), c);
+            if (c.nickname) allContactsMap.set(String(c.nickname).trim().toLowerCase(), c);
+            if (c.remark) allContactsMap.set(String(c.remark).trim().toLowerCase(), c);
+          }
+          console.log(`[Cache] 全局联系人缓存初始化完成，共 ${allContactsList.length} 位好友`);
+        }
+      } catch (err) {
+        console.warn("加载全局联系人缓存失败:", err);
+      }
+    }
+
+    function findContactFromAnySource(wxid, nickname) {
+      if (wxid) {
+        const cleanWx = String(wxid).trim().toLowerCase();
+        if (allContactsMap.has(cleanWx)) return allContactsMap.get(cleanWx);
+      }
+      if (nickname) {
+        const cleanName = String(nickname).trim().toLowerCase();
+        if (allContactsMap.has(cleanName)) return allContactsMap.get(cleanName);
+      }
+      if (contactsList && contactsList.length > 0) {
+        const idx = findContactIndex(wxid, nickname);
+        if (idx >= 0) return contactsList[idx];
+      }
+      return null;
+    }
+
+    function getMomentTier(m) {
+      if (m && m.tier && String(m.tier).trim()) {
+        return String(m.tier).trim().toUpperCase();
+      }
+      const c = findContactFromAnySource(m ? m.userName : '', m ? m.nickname : '');
+      if (c && c.tier) {
+        return String(c.tier).trim().toUpperCase();
+      }
+      return '';
+    }
+
+    function getFilteredTimelineMoments() {
+      if (!currentFilterTier || currentFilterTier === 'ALL') {
+        return rawHomeMomentsList;
+      }
+      const target = currentFilterTier.toUpperCase();
+      return rawHomeMomentsList.filter(m => getMomentTier(m) === target);
+    }
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -2615,6 +2680,7 @@
       await fetchMyProfile();
       await loadExcelFiles();
       await fetchStats();
+      await initAllContactsCache();
       await fetchContacts(true); // 首次加载进入朋友圈首页公共流
     }
 
@@ -2702,24 +2768,14 @@
         contactsList = json.data || [];
         renderContactsList();
 
-        // 当首次加载或选择“全部 (1806)”(currentFilterTier === 'ALL') 时，3 加载获取朋友圈首页 sns_get_first_page，2 空白
-        if (isInitial || currentFilterTier === "ALL") {
-          await switchToHomeTimeline();
-        } else {
-          // 选择了特定等级筛选 (如 S/A/B/C/D)，默认选中第 1 位
-          if (contactsList.length > 0) {
-            currentIndex = 0;
-            await selectContact(currentIndex);
-          } else {
-            clearView();
-          }
-        }
+        // 无论点击“全部 (1806)”还是点击特定等级（如 S/A/B/C/D），朋友圈均切入对应等级过滤后的动态流
+        await switchToHomeTimeline();
       } catch (err) {
         showToast("读取联系人列表失败: " + err.message, "warning");
       }
     }
 
-    // 切换至朋友圈首页模式 (3 加载获取朋友圈首页 sns_get_first_page，2 空白)
+    // 切换至朋友圈动态流模式 (3 呈现按等级过滤后的朋友圈时间线，2 聊天区域置空引导)
     async function switchToHomeTimeline() {
       isHomeTimelineMode = true;
       currentIndex = -1;
@@ -2728,19 +2784,32 @@
       // 1. 刷新左侧列表选中样式 (无 active 选中项)
       renderContactsList();
 
-      // 2. 区域 2：聊天记录区域置为空白
+      // 2. 区域 2：聊天记录区域置为空白引导
       renderEmptyChat();
 
-      // 3. 区域 3：加载朋友圈首页公共时间线 (sns_get_first_page)
-      await loadFirstPageMoments();
+      // 3. 区域 3：根据当前分类筛选展示朋友圈时间线 (若未拉取过则先调接口)
+      if (rawHomeMomentsList && rawHomeMomentsList.length > 0) {
+        renderTimelineMoments();
+      } else {
+        await loadFirstPageMoments();
+      }
 
-      // 4. 右侧分析面板显示未选择引导
+      // 4. 右侧分析面板显示引导
       renderEmptyAnalysis();
 
       // 5. 底部快捷导航指示
+      const tierNames = {
+        'ALL': '全部意向好友',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级好友',
+        'C': 'C级好友',
+        'D': 'D级好友'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
       const indicator = document.getElementById("nav-index-indicator");
       if (indicator) {
-        indicator.innerText = `朋友圈首页概览 · 共 ${contactsList.length} 位意向好友`;
+        indicator.innerText = `${tierTitle}朋友圈 · 共 ${contactsList.length} 位好友`;
       }
     }
 
@@ -2771,16 +2840,25 @@
     // 右侧分析画像：渲染空白引导
     function renderEmptyAnalysis() {
       const container = document.getElementById("analysis-container");
+      const tierNames = {
+        'ALL': '全部好友',
+        'S': 'S级-强意向好友',
+        'A': 'A级-明确好友',
+        'B': 'B级好友',
+        'C': 'C级好友',
+        'D': 'D级好友'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级好友`;
       container.innerHTML = `
         <div style="padding:24px 16px; text-align:center; color:#64748b;">
           <div style="width:52px; height:52px; border-radius:50%; background:#ecfdf5; display:flex; align-items:center; justify-content:center; font-size:26px; margin:16px auto 12px auto;">🎯</div>
           <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:6px;">微信好友微创业意向全景</div>
-          <div style="font-size:12px; color:#64748b; line-height:1.6; margin-bottom:16px;">当前处于【全部好友 · 朋友圈首页动态】视角。在左侧列表中点击任一好友，即可在此加载该好友专属的微创业痛点画像与定制触达话术。</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.6; margin-bottom:16px;">当前处于【${tierTitle} · 朋友圈动态】视角。在左侧列表中点击任一好友，即可在此加载该好友专属的微创业痛点画像与定制触达话术。</div>
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:left; font-size:12px; color:#475569; line-height:1.7;">
             <div style="font-weight:600; margin-bottom:4px; color:#1e293b;">💡 快速指引：</div>
-            <div>• 中间正在浏览朋友圈首页最新动态，可直接在动态中点击好友头像查看简历；</div>
-            <div>• 点击动态中的【查看私信】可一键定位并调取该好友的历史聊天记录；</div>
-            <div>• 点击左侧分类标签（S/A/B/C/D）可筛选不同意向级别的好友。</div>
+            <div>• 中间正在浏览朋友圈动态，已自动按【${tierTitle}】过滤展示；</div>
+            <div>• 可直接在动态中点击好友头像查看简历，点击【查看私信】调取历史聊天；</div>
+            <div>• 点击左侧分类标签（S/A/B/C/D）可切换不同级别并联动过滤朋友圈。</div>
           </div>
         </div>
       `;
@@ -2799,25 +2877,73 @@
       return idx;
     }
 
-    // 区域 3：加载朋友圈首页 (sns_get_first_page)
+    // 根据 wxid 自动定位并选中联系人（若不在当前列表则自动切换分类）
+    async function selectContactByWxid(wxid) {
+      if (!wxid) return;
+      const idx = contactsList.findIndex(c => c.wxid === wxid || (c.realWxid && c.realWxid === wxid));
+      if (idx >= 0) {
+        await selectContact(idx);
+        return;
+      }
+      const c = findContactFromAnySource(wxid, null);
+      if (c) {
+        if (c.tier && c.tier !== currentFilterTier) {
+          const targetChip = document.querySelector(`.tier-chip[onclick*="'${c.tier}'"]`) || document.querySelector(`.tier-chip[onclick*="'ALL'"]`);
+          if (targetChip) {
+            currentFilterTier = c.tier;
+            tierAutoLoadCount = 0;
+            document.querySelectorAll(".tier-chip").forEach(el => el.classList.remove("active"));
+            targetChip.classList.add("active");
+
+            let url = `/api/contacts?tier=${encodeURIComponent(currentFilterTier)}`;
+            if (currentSearchText) url += `&search=${encodeURIComponent(currentSearchText)}`;
+            const res = await fetch(url);
+            const json = await res.json();
+            contactsList = json.data || [];
+            renderContactsList();
+
+            const newIdx = contactsList.findIndex(x => x.wxid === wxid || (x.realWxid && x.realWxid === wxid));
+            if (newIdx >= 0) {
+              await selectContact(newIdx);
+              return;
+            }
+          }
+        }
+      }
+      openContactCvProfile(wxid);
+    }
+
+    // 区域 3：加载朋友圈首页公共时间线 (sns_get_first_page)
     async function loadFirstPageMoments() {
       const momentsBox = document.getElementById("moments-stream");
       const titleElem = document.getElementById("moments-panel-title");
       const badgeElem = document.getElementById("moments-panel-badge");
       const cvBtn = document.getElementById("btn-moments-cv");
+      const backBtn = document.getElementById("btn-back-timeline");
 
-      if (titleElem) titleElem.innerText = "朋友圈首页动态";
+      const tierNames = {
+        'ALL': '全部',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级',
+        'C': 'C级',
+        'D': 'D级'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
+
+      if (titleElem) titleElem.innerText = currentFilterTier === 'ALL' ? "朋友圈首页动态" : `朋友圈动态 · ${tierTitle}`;
       if (badgeElem) {
-        badgeElem.innerText = "公共时间线 (sns_get_first_page)";
+        badgeElem.innerText = currentFilterTier === 'ALL' ? "公共时间线 (sns_get_first_page)" : `筛选中 · ${tierTitle}`;
         badgeElem.style.background = "#ecfdf5";
         badgeElem.style.color = "#047857";
       }
-      if (cvBtn) cvBtn.style.display = "none"; // 首页模式下不显示单人简历按钮
+      if (cvBtn) cvBtn.style.display = "none";
+      if (backBtn) backBtn.style.display = "none";
 
       momentsBox.innerHTML = `
         <div style="text-align:center; padding:60px 20px; color:#64748b;">
           <div class="loading-spin" style="border-color:#07c160; border-top-color:transparent; width:30px; height:30px; margin:0 auto 12px auto;"></div>
-          <div style="font-size:13px; font-weight:500;">正在获取朋友圈首页动态 (sns_get_first_page)...</div>
+          <div style="font-size:13px; font-weight:500;">正在获取朋友圈动态 (sns_get_first_page)...</div>
           <div style="font-size:11px; color:#94a3b8; margin-top:4px;">实时读取微信 Hook 公共时间线流</div>
         </div>
       `;
@@ -2826,15 +2952,14 @@
         const res = await fetch('/api/moments/first-page');
         if (!res.ok) throw new Error("获取朋友圈首页失败");
         const data = await res.json();
-        currentMomentsList = data.moments || [];
-        currentMomentsContact = null;
+        rawHomeMomentsList = data.moments || [];
         momentsPagination.firstPageMd5 = data.firstPageMd5 || '';
         momentsPagination.session = data.session || '';
         momentsPagination.hasMore = true;
-        if (currentMomentsList.length > 0) {
-          momentsPagination.lastItemId = currentMomentsList[currentMomentsList.length - 1].id || '';
+        if (rawHomeMomentsList.length > 0) {
+          momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
         }
-        renderFirstPageMoments(currentMomentsList);
+        renderTimelineMoments();
       } catch (err) {
         momentsBox.innerHTML = `
           <div style="text-align:center; padding:50px 20px; color:#ef4444;">
@@ -2852,11 +2977,13 @@
       let authorAvatar, authorName, authorWxid, tier = '', remark = '', matchedIdx = -1;
       if (isHomePage) {
         matchedIdx = findContactIndex(m.userName, m.nickname);
-        authorAvatar = m.avatar || (matchedIdx >= 0 ? contactsList[matchedIdx].avatar : 'https://i.pravatar.cc/150?img=5');
-        authorName = m.nickname || (matchedIdx >= 0 ? contactsList[matchedIdx].name : (m.userName || '微信好友'));
-        tier = m.tier || (matchedIdx >= 0 ? contactsList[matchedIdx].tier : '');
-        remark = m.remark || (matchedIdx >= 0 ? contactsList[matchedIdx].remark : '');
-        authorWxid = m.userName || (matchedIdx >= 0 ? contactsList[matchedIdx].wxid : '');
+        const contactFromMap = findContactFromAnySource(m.userName, m.nickname);
+
+        authorAvatar = m.avatar || (contactFromMap && contactFromMap.avatar) || (matchedIdx >= 0 ? contactsList[matchedIdx].avatar : 'https://i.pravatar.cc/150?img=5');
+        authorName = m.nickname || (contactFromMap && contactFromMap.name) || (matchedIdx >= 0 ? contactsList[matchedIdx].name : (m.userName || '微信好友'));
+        tier = m.tier || (contactFromMap && contactFromMap.tier) || (matchedIdx >= 0 ? contactsList[matchedIdx].tier : '');
+        remark = m.remark || (contactFromMap && contactFromMap.remark) || (matchedIdx >= 0 ? contactsList[matchedIdx].remark : '');
+        authorWxid = m.userName || (contactFromMap && (contactFromMap.realWxid || contactFromMap.wxid)) || (matchedIdx >= 0 ? contactsList[matchedIdx].wxid : '');
       } else {
         authorAvatar = (defaultContact && defaultContact.avatar) || 'https://i.pravatar.cc/150?img=3';
         authorName = (defaultContact && defaultContact.name) || '好友';
@@ -2874,7 +3001,7 @@
       const hasComments = comments.length > 0;
 
       return `
-        <div class="moments-item" id="moment-card-${snsId}">
+        <div class="moments-item" id="moment-card-${snsId}" data-tier="${tier}">
           <img class="moments-author-avatar" src="${authorAvatar}" 
             onclick="${authorWxid ? `openContactCvProfile('${escapeJs(authorWxid)}')` : ''}" 
             title="${escapeHtml(authorName)}${tier ? ` [${tier}级]` : ''} 点击查看简历档案" 
@@ -2886,9 +3013,9 @@
                 ${tier ? `<span class="tier-badge-sub badge-${tier}" style="position:static; transform:none; display:inline-block; font-size:10px; padding:1px 5px;">${tier}级</span>` : ''}
                 ${remark ? `<span style="font-size:11px; color:#64748b; font-weight:normal;">(${escapeHtml(remark)})</span>` : ''}
               </div>
-              ${matchedIdx >= 0 ? `
+              ${authorWxid ? `
                 <button class="btn-pitch" style="font-size:10px; padding:2px 8px; height:22px; color:#0284c7; border-color:#bae6fd; background:#f0f9ff;" 
-                  onclick="event.stopPropagation(); selectContact(${matchedIdx});" 
+                  onclick="event.stopPropagation(); selectContactByWxid('${escapeJs(authorWxid)}');" 
                   title="切换查看该好友的聊天记录与 AI 分析">
                   💬 查看私信
                 </button>
@@ -2995,14 +3122,49 @@
       `;
     }
 
-    // 区域 3：渲染朋友圈首页公共动态
-    function renderFirstPageMoments(moments) {
-      currentMomentsList = moments || [];
+    // 区域 3：渲染朋友圈时间线（根据当前筛选等级 currentFilterTier 动态过滤）
+    function renderTimelineMoments() {
+      const displayMoments = getFilteredTimelineMoments();
+      currentMomentsList = displayMoments;
       currentMomentsContact = null;
+
       const momentsBox = document.getElementById("moments-stream");
+      const titleElem = document.getElementById("moments-panel-title");
+      const badgeElem = document.getElementById("moments-panel-badge");
+      const cvBtn = document.getElementById("btn-moments-cv");
+      const backBtn = document.getElementById("btn-back-timeline");
+
+      if (cvBtn) cvBtn.style.display = "none";
+      if (backBtn) backBtn.style.display = "none";
+
+      const tierNames = {
+        'ALL': '全部',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级',
+        'C': 'C级',
+        'D': 'D级'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
+
+      if (titleElem) {
+        titleElem.innerText = currentFilterTier === 'ALL' ? "朋友圈首页动态" : `朋友圈动态 · ${tierTitle}`;
+      }
+      if (badgeElem) {
+        if (currentFilterTier === 'ALL') {
+          badgeElem.innerText = `公共时间线 (${rawHomeMomentsList.length} 条)`;
+          badgeElem.style.background = "#ecfdf5";
+          badgeElem.style.color = "#047857";
+        } else {
+          badgeElem.innerText = `已筛选 ${tierTitle} (${displayMoments.length} 条)`;
+          badgeElem.style.background = currentFilterTier === 'S' ? '#fff7ed' : (currentFilterTier === 'A' ? '#f5f3ff' : '#eff6ff');
+          badgeElem.style.color = currentFilterTier === 'S' ? '#c2410c' : (currentFilterTier === 'A' ? '#6d28d9' : '#1d4ed8');
+        }
+      }
+
       let feedContent = '';
 
-      if (!moments || moments.length === 0) {
+      if (rawHomeMomentsList.length === 0) {
         feedContent = `
           <div style="text-align:center; padding:50px 20px; color:#9ca3af;">
             <div style="font-size:36px; margin-bottom:10px;">📷</div>
@@ -3010,8 +3172,41 @@
             <div style="font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.5;">可点击右上角【🔄 刷新朋友圈】向微信发送 <code>sns_get_first_page</code> 指令实时拉取最新时间线</div>
           </div>
         `;
+      } else if (displayMoments.length === 0) {
+        // 如果当前分类没有匹配的动态，且微信后台还有更多朋友圈分页，自动预拉取下一页进行深度匹配 (最多重试 3 次)
+        if (momentsPagination.hasMore && !momentsPagination.isLoading && currentFilterTier !== 'ALL' && tierAutoLoadCount < 3) {
+          tierAutoLoadCount++;
+          console.log(`[Moments Filter] 当前【${tierTitle}】暂无已加载动态，自动深入拉取下一页匹配 (第 ${tierAutoLoadCount} 次)...`);
+          setTimeout(() => {
+            loadNextPageMoments();
+          }, 250);
+          feedContent = `
+            <div style="text-align:center; padding:50px 20px; color:#64748b;">
+              <div class="loading-spin" style="border-color:#ea580c; border-top-color:transparent; width:28px; height:28px; margin:0 auto 12px auto;"></div>
+              <div style="font-size:14px; font-weight:600; color:#334155;">正在深度检索【${tierTitle}】好友朋友圈动态...</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:6px;">已扫描前 ${rawHomeMomentsList.length} 条，正在向微信后台拉取下一页 (sns_get_next_page)</div>
+            </div>
+          `;
+        } else {
+          feedContent = `
+            <div style="text-align:center; padding:50px 20px; color:#9ca3af;">
+              <div style="font-size:36px; margin-bottom:10px;">🎯</div>
+              <div style="font-size:14px; font-weight:600; color:#475569;">暂无【${tierTitle}】好友的朋友圈动态</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.5;">已缓存时间线 (${rawHomeMomentsList.length} 条) 中暂未发现【${tierTitle}】好友动态</div>
+              <div style="margin-top:14px;">
+                <button onclick="loadNextPageMoments()" class="btn-pitch" style="font-size:12px; padding:6px 14px;">向下滑动继续拉取下一页朋友圈</button>
+              </div>
+            </div>
+            <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
+              <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
+                <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
+                <span id="moments-bottom-hint">点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓</span>
+              </button>
+            </div>
+          `;
+        }
       } else {
-        feedContent = moments.map(m => renderMomentCardHtml(m, true, null)).join('') + `
+        feedContent = displayMoments.map(m => renderMomentCardHtml(m, true, null)).join('') + `
           <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
             <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
               <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
@@ -3026,12 +3221,16 @@
           <img class="cover-bg" src="https://picsum.photos/seed/wechat-sns-feed/800/260" alt="cover" onerror="this.src='https://picsum.photos/seed/bg1/800/260'">
           <div class="user-profile-badge" style="cursor:default;">
             <div class="moments-user-name">
-              <span>朋友圈首页动态</span>
-              <span class="sub-hint" style="background:#07c160; color:#fff;">公共时间线 (${moments ? moments.length : 0} 条)</span>
+              <span>${currentFilterTier === 'ALL' ? '朋友圈首页动态' : `${tierTitle}朋友圈`}</span>
+              <span class="sub-hint" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#07c160')}; color:#fff;">
+                ${currentFilterTier === 'ALL' ? `公共时间线 (${rawHomeMomentsList.length} 条)` : `已过滤 ${tierTitle} (${displayMoments.length} / ${rawHomeMomentsList.length} 条)`}
+              </span>
             </div>
             <div class="moments-avatar-container">
               <img class="moments-user-avatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&h=120&q=80" alt="avatar">
-              <div class="moments-avatar-cv-chip" style="background:#059669;">公共流</div>
+              <div class="moments-avatar-cv-chip" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#059669')};">
+                ${currentFilterTier === 'ALL' ? '公共流' : `${currentFilterTier}级流`}
+              </div>
             </div>
           </div>
         </div>
@@ -3042,14 +3241,19 @@
       setupMomentsObserver();
     }
 
+    // 兼容旧接口
+    function renderFirstPageMoments(moments) {
+      if (moments) rawHomeMomentsList = moments;
+      renderTimelineMoments();
+    }
+
     // 区域 3：滚动触底或点击加载下一页朋友圈 (sns_get_next_page)
     async function loadNextPageMoments() {
       if (!isHomeTimelineMode) return;
       if (momentsPagination.isLoading || !momentsPagination.hasMore) return;
 
-      // 确保 lastItemId 存在，如未设置则自适应取最后一条动态 ID
-      if (!momentsPagination.lastItemId && currentMomentsList.length > 0) {
-        momentsPagination.lastItemId = currentMomentsList[currentMomentsList.length - 1].id || '';
+      if (!momentsPagination.lastItemId && rawHomeMomentsList.length > 0) {
+        momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
       }
       if (!momentsPagination.lastItemId) {
         const cards = document.querySelectorAll(".moments-item[id^='moment-card-']");
@@ -3099,51 +3303,21 @@
 
         if (nextList.length > 0) {
           momentsPagination.lastItemId = nextList[nextList.length - 1].id || momentsPagination.lastItemId;
-          currentMomentsList = currentMomentsList.concat(nextList);
+          const newItems = nextList.filter(nm => !rawHomeMomentsList.some(em => String(em.id) === String(nm.id)));
+          rawHomeMomentsList = rawHomeMomentsList.concat(newItems.length > 0 ? newItems : nextList);
 
-          // 动态插入新卡片到底部区域之前
-          const bottomArea = document.getElementById("moments-bottom-area");
-          const tempDiv = document.createElement("div");
-          tempDiv.innerHTML = nextList.map(m => renderMomentCardHtml(m, true, null)).join('');
+          // 重新根据当前分类筛选展示朋友圈时间线
+          renderTimelineMoments();
 
-          if (bottomArea && bottomArea.parentNode) {
-            while (tempDiv.firstChild) {
-              bottomArea.parentNode.insertBefore(tempDiv.firstChild, bottomArea);
-            }
-          }
-
-          // 更新顶部总动态条数角标
-          const badgeHint = document.querySelector(".moments-user-name .sub-hint");
-          if (badgeHint) {
-            badgeHint.innerText = `公共时间线 (${currentMomentsList.length} 条)`;
-          }
-
-          if (!data.hasMore || nextList.length === 0) {
+          if (!data.hasMore) {
             momentsPagination.hasMore = false;
-            if (bottomHint) bottomHint.innerText = "── 已加载全部朋友圈动态 ──";
-            if (loadBtn) {
-              loadBtn.disabled = true;
-              loadBtn.style.border = "none";
-              loadBtn.style.background = "transparent";
-              loadBtn.style.color = "#94a3b8";
-              loadBtn.style.cursor = "default";
-            }
-          } else {
-            if (bottomHint) bottomHint.innerText = "点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓";
-            if (loadBtn) loadBtn.disabled = false;
-            // 重新挂载观察者
-            setupMomentsObserver();
+            const bh = document.getElementById("moments-bottom-hint");
+            if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
           }
         } else {
           momentsPagination.hasMore = false;
-          if (bottomHint) bottomHint.innerText = "── 已加载全部朋友圈动态 ──";
-          if (loadBtn) {
-            loadBtn.disabled = true;
-            loadBtn.style.border = "none";
-            loadBtn.style.background = "transparent";
-            loadBtn.style.color = "#94a3b8";
-            loadBtn.style.cursor = "default";
-          }
+          const bh = document.getElementById("moments-bottom-hint");
+          if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
         }
       } catch (err) {
         console.error("[Moments] 加载下一页异常:", err);
@@ -3537,6 +3711,8 @@
         badgeElem.style.color = "#1e40af";
       }
       if (cvBtn) cvBtn.style.display = "inline-flex";
+      const backBtn = document.getElementById("btn-back-timeline");
+      if (backBtn) backBtn.style.display = "inline-flex";
 
       let feedContent = '';
 
@@ -4021,6 +4197,7 @@
         }
         await loadExcelFiles();
         await fetchStats();
+        await initAllContactsCache();
         await fetchContacts();
         showToast(`Excel 刷新成功！共 ${data.totalContacts || 0} 位意向好友 (Hook: ${data.hookUrl})`, "success");
       } catch (err) {
@@ -4038,8 +4215,9 @@
 
     function filterTier(tier, el) {
       currentFilterTier = tier;
+      tierAutoLoadCount = 0;
       document.querySelectorAll(".tier-chip").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
+      if (el) el.classList.add("active");
       fetchContacts();
     }
 

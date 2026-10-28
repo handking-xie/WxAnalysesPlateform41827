@@ -760,7 +760,7 @@
       transform: scale(1.03);
     }
 
-    /* 朋友圈图片默认占位符样式 */
+    /* 朋友圈图片默认占位符样式 (避免直接拉取网络请求) */
     .moment-pic-placeholder {
       width: 85px;
       height: 85px;
@@ -1013,20 +1013,68 @@
       flex-wrap: wrap;
       font-size: 11px;
     }
+    /* 微信真实朋友圈互动区域 */
     .moments-meta {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-size: 11px;
       color: #8f959e;
-      margin-top: 6px;
-    }
-    .moments-interaction-box {
       margin-top: 8px;
-      background: #f3f4f6;
+    }
+    .moments-time {
+      color: #8c8c8c;
+    }
+    .moments-action-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .moments-act-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: #f1f2f5;
+      color: #576b95;
+      border: 1px solid #e2e4ea;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .moments-act-btn:hover {
+      background: #e5e8ef;
+      border-color: #cbd1dc;
+    }
+    .moments-act-btn.liked {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+    .moments-act-btn.liked:hover {
+      background: #fecaca;
+    }
+
+    /* 微信点赞与评论灰底圆角气泡盒 */
+    .moments-interaction-box {
+      margin-top: 10px;
+      background: #f7f7f8;
       border-radius: 4px;
       padding: 6px 10px;
       font-size: 12px;
+      position: relative;
+    }
+    .moments-interaction-box::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: 16px;
+      border-width: 0 6px 6px 6px;
+      border-style: solid;
+      border-color: transparent transparent #f7f7f8 transparent;
     }
     .moments-likes {
       color: #576b95;
@@ -1034,19 +1082,161 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 4px;
-      margin-bottom: 4px;
+      flex-wrap: wrap;
+      line-height: 1.5;
+    }
+    .moments-likes-divider {
+      height: 1px;
+      background: #e8e9ec;
+      margin: 6px 0;
     }
     .moments-comments {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      color: #374151;
+      gap: 4px;
+      color: #27272a;
     }
-    .moments-comments span {
+    .comment-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 2px;
+      line-height: 1.55;
+      padding: 2px 4px;
+      border-radius: 3px;
+      position: relative;
+      transition: background 0.15s;
+    }
+    .comment-row:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+    .comment-author {
       color: #576b95;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .comment-author:hover {
+      text-decoration: underline;
+    }
+    .comment-reply-label {
+      color: #71717a;
+      font-size: 11px;
+      margin: 0 2px;
+    }
+    .comment-colon {
+      color: #576b95;
+      font-weight: 600;
+      margin-right: 2px;
+    }
+    .comment-text {
+      color: #18181b;
+      word-break: break-word;
+    }
+    .comment-acts {
+      margin-left: auto;
+      display: none;
+      gap: 4px;
+      align-items: center;
+    }
+    .comment-row:hover .comment-acts {
+      display: inline-flex;
+    }
+    .btn-comment-sub {
+      border: none;
+      background: transparent;
+      color: #576b95;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .btn-comment-sub:hover {
+      background: #e2e8f0;
+    }
+    .btn-comment-sub.del {
+      color: #ef4444;
+    }
+    .btn-comment-sub.del:hover {
+      background: #fee2e2;
+    }
+
+    /* 微信内联输入回复栏 */
+    .moments-inline-composer {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 4px 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .inline-comment-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 12px;
+      padding: 4px 6px;
+      font-family: inherit;
+      background: transparent;
+    }
+    .btn-inline-send {
+      padding: 4px 12px;
+      background: #07c160;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
       font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-inline-send:hover {
+      background: #06ad56;
+    }
+    .btn-inline-cancel {
+      padding: 4px 8px;
+      background: transparent;
+      color: #6b7280;
+      border: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-inline-cancel:hover {
+      color: #111827;
+    }
+
+    /* 朋友圈底部自动加载按钮与指示器 */
+    .btn-load-next-moments {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 26px;
+      background: #ffffff;
+      color: #07c160;
+      border: 1px solid #a7f3d0;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .btn-load-next-moments:hover {
+      background: #ecfdf5;
+      border-color: #07c160;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(7, 193, 96, 0.18);
+    }
+    .btn-load-next-moments:active {
+      transform: translateY(0);
+    }
+    .btn-load-next-moments:disabled {
+      opacity: 0.85;
+      cursor: default;
     }
 
     /* 3. 右侧分析与破冰决策中心 */
@@ -2045,14 +2235,17 @@
       <div class="moments-view-panel">
         <div class="panel-header">
           <div class="panel-title-group">
-            <span class="panel-title">好友朋友圈动态</span>
-            <span class="panel-badge" style="background:#dbeafe; color:#1e40af;">相册实时同步</span>
+            <span class="panel-title" id="moments-panel-title">好友朋友圈动态</span>
+            <span class="panel-badge" id="moments-panel-badge" style="background:#dbeafe; color:#1e40af;">相册实时同步</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
-            <button class="btn-header" style="height:26px; padding:0 10px; font-size:11px; background:#0284c7; color:#fff; border-color:#0284c7; font-weight:600; cursor:pointer;" onclick="openContactCvProfile()" title="点击获取详细资料与简历 (get_contact_fast)">
+            <button class="btn-header" id="btn-moments-cv" style="height:26px; padding:0 10px; font-size:11px; background:#0284c7; color:#fff; border-color:#0284c7; font-weight:600; cursor:pointer;" onclick="openContactCvProfile()" title="点击获取详细资料与简历 (get_contact_fast)">
               📄 资料/简历
             </button>
-            <button class="btn-header" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
+            <button class="btn-header" id="btn-back-timeline" style="display:none; height:26px; padding:0 8px; font-size:11px; color:#475569; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; font-weight:500;" onclick="switchToHomeTimeline()" title="返回朋友圈动态时间线">
+              🏠 返回动态流
+            </button>
+            <button class="btn-header" id="btn-moments-sync" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
               🔄 刷新朋友圈
             </button>
           </div>
@@ -2328,7 +2521,7 @@
     </div>
   </div>
 
-  <!-- 朋友圈大图全屏/弹窗查看器 Modal -->
+  <!-- 朋友圈大图全屏/弹窗查看器 Modal (支持下载到 TempCache 后展示与操作) -->
   <div id="moment-img-modal" class="moment-modal-backdrop" style="display:none;" onclick="handleMomentModalBackdropClick(event)">
     <div class="moment-modal-dialog">
       <div class="moment-modal-header">
@@ -2371,14 +2564,174 @@
     let contactsList = [];
     let currentFilterTier = "ALL";
     let currentSearchText = "";
-    let currentIndex = 0;
+    let currentIndex = -1; // -1 表示未选中具体好友 (处于朋友圈首页概览模式)
     let currentContactDetail = null;
+    let isHomeTimelineMode = true; // 首次加载或选“全部”时为 true
+
+    // 微信朋友圈交互运行时状态
+    let myWxProfile = { wxid: '', nickname: '我' };
+    let rawHomeMomentsList = []; // 完整缓存的时间线朋友圈数据 (包含 first-page 与多页 next-page)
+    let currentMomentsList = []; // 当前视图渲染或过滤呈现的朋友圈数据
+    let currentMomentsContact = null;
+    let activeComposerTarget = {}; // { [snsId]: { commentId, replyToUser, toWxid } }
+    let momentsPagination = {
+      isLoading: false,
+      hasMore: true,
+      firstPageMd5: '',
+      session: '',
+      lastItemId: ''
+    };
+    let tierAutoLoadCount = 0; // 切换分类时自动拉取下一页的重试计数器
+
+    // 全局联系人缓存映射表 (用于朋友圈跨分类即时匹配评级、头像与一键私信)
+    let allContactsList = [];
+    let allContactsMap = new Map();
+
+    async function initAllContactsCache() {
+      try {
+        const res = await fetch('/api/contacts?tier=ALL');
+        if (res.ok) {
+          const json = await res.json();
+          allContactsList = json.data || [];
+          allContactsMap.clear();
+          for (const c of allContactsList) {
+            if (c.wxid) allContactsMap.set(String(c.wxid).trim().toLowerCase(), c);
+            if (c.realWxid) allContactsMap.set(String(c.realWxid).trim().toLowerCase(), c);
+            if (c.name) allContactsMap.set(String(c.name).trim().toLowerCase(), c);
+            if (c.nickname) allContactsMap.set(String(c.nickname).trim().toLowerCase(), c);
+            if (c.remark) allContactsMap.set(String(c.remark).trim().toLowerCase(), c);
+          }
+          console.log(`[Cache] 全局联系人缓存初始化完成，共 ${allContactsList.length} 位好友`);
+        }
+      } catch (err) {
+        console.warn("加载全局联系人缓存失败:", err);
+      }
+    }
+
+    function findContactFromAnySource(wxid, nickname) {
+      if (wxid) {
+        const cleanWx = String(wxid).trim().toLowerCase();
+        if (allContactsMap.has(cleanWx)) return allContactsMap.get(cleanWx);
+      }
+      if (nickname) {
+        const cleanName = String(nickname).trim().toLowerCase();
+        if (allContactsMap.has(cleanName)) return allContactsMap.get(cleanName);
+      }
+      if (contactsList && contactsList.length > 0) {
+        const idx = findContactIndex(wxid, nickname);
+        if (idx >= 0) return contactsList[idx];
+      }
+      return null;
+    }
+
+    function getMomentTier(m) {
+      if (m && m.tier && String(m.tier).trim()) {
+        return String(m.tier).trim().toUpperCase();
+      }
+      const c = findContactFromAnySource(m ? m.userName : '', m ? m.nickname : '');
+      if (c && c.tier) {
+        return String(c.tier).trim().toUpperCase();
+      }
+      return '';
+    }
+
+    function getFilteredTimelineMoments() {
+      if (!currentFilterTier || currentFilterTier === 'ALL') {
+        return rawHomeMomentsList;
+      }
+      const target = currentFilterTier.toUpperCase();
+      return rawHomeMomentsList.filter(m => getMomentTier(m) === target);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeJs(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"');
+    }
+
+    async function fetchMyProfile() {
+      try {
+        const res = await fetch('/api/wechat/my-profile');
+        const data = await res.json();
+        if (data && data.success) {
+          myWxProfile.wxid = data.wxid || '';
+          myWxProfile.nickname = data.nickname || '我';
+        }
+      } catch (e) {
+        console.warn("fetchMyProfile error", e);
+      }
+    }
 
     // 页面启动加载
     async function init() {
+      setupMomentsScrollListener();
+      await fetchMyProfile();
       await loadExcelFiles();
       await fetchStats();
-      await fetchContacts();
+      await initAllContactsCache();
+      await fetchContacts(true); // 首次加载进入朋友圈首页公共流
+    }
+
+    let momentsObserver = null;
+
+    // 观察朋友圈底部哨兵元素，进入视口时自动无感拉取下一页 (sns_get_next_page)
+    function setupMomentsObserver() {
+      if (momentsObserver) {
+        momentsObserver.disconnect();
+        momentsObserver = null;
+      }
+      const feed = document.getElementById("moments-stream");
+      const bottomArea = document.getElementById("moments-bottom-area");
+      if (!feed || !bottomArea) return;
+
+      if ('IntersectionObserver' in window) {
+        momentsObserver = new IntersectionObserver((entries) => {
+          if (entries[0] && entries[0].isIntersecting) {
+            if (isHomeTimelineMode && !momentsPagination.isLoading && momentsPagination.hasMore) {
+              console.log("[Moments] IntersectionObserver 侦测触底，触发 loadNextPageMoments");
+              loadNextPageMoments();
+            }
+          }
+        }, {
+          root: feed,
+          rootMargin: "350px" // 提前 350px 预加载，确保滑到页面底部时已提前载入或立即触发
+        });
+        momentsObserver.observe(bottomArea);
+      }
+    }
+
+    // 监听区域 3 朋友圈滚动与滚轮事件，多重保障滑动触底触发
+    function setupMomentsScrollListener() {
+      const feed = document.getElementById("moments-stream");
+      if (!feed) return;
+
+      // 1. 监听常规滚动事件，阈值放宽至 350px 提前预加载
+      feed.addEventListener("scroll", () => {
+        if (!isHomeTimelineMode) return;
+        if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 350) {
+          loadNextPageMoments();
+        }
+      }, { passive: true });
+
+      // 2. 监听滚轮事件，当已在底部边缘且向下滑动时直接触发
+      feed.addEventListener("wheel", (e) => {
+        if (!isHomeTimelineMode) return;
+        if (e.deltaY > 0 && feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 80) {
+          loadNextPageMoments();
+        }
+      }, { passive: true });
     }
 
     // 1. 获取全局统计看板
@@ -2405,7 +2758,7 @@
     }
 
     // 2. 加载好友列表
-    async function fetchContacts() {
+    async function fetchContacts(isInitial = false) {
       try {
         let url = `/api/contacts?tier=${encodeURIComponent(currentFilterTier)}`;
         if (currentSearchText) url += `&search=${encodeURIComponent(currentSearchText)}`;
@@ -2415,15 +2768,823 @@
         contactsList = json.data || [];
         renderContactsList();
 
-        if (contactsList.length > 0) {
-          if (currentIndex >= contactsList.length) currentIndex = 0;
-          await selectContact(currentIndex);
-        } else {
-          clearView();
-        }
+        // 无论点击“全部 (1806)”还是点击特定等级（如 S/A/B/C/D），朋友圈均切入对应等级过滤后的动态流
+        await switchToHomeTimeline();
       } catch (err) {
         showToast("读取联系人列表失败: " + err.message, "warning");
       }
+    }
+
+    // 切换至朋友圈动态流模式 (3 呈现按等级过滤后的朋友圈时间线，2 聊天区域置空引导)
+    async function switchToHomeTimeline() {
+      isHomeTimelineMode = true;
+      currentIndex = -1;
+      currentContactDetail = null;
+
+      // 1. 刷新左侧列表选中样式 (无 active 选中项)
+      renderContactsList();
+
+      // 2. 区域 2：聊天记录区域置为空白引导
+      renderEmptyChat();
+
+      // 3. 区域 3：根据当前分类筛选展示朋友圈时间线 (若未拉取过则先调接口)
+      if (rawHomeMomentsList && rawHomeMomentsList.length > 0) {
+        renderTimelineMoments();
+      } else {
+        await loadFirstPageMoments();
+      }
+
+      // 4. 右侧分析面板显示引导
+      renderEmptyAnalysis();
+
+      // 5. 底部快捷导航指示
+      const tierNames = {
+        'ALL': '全部意向好友',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级好友',
+        'C': 'C级好友',
+        'D': 'D级好友'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
+      const indicator = document.getElementById("nav-index-indicator");
+      if (indicator) {
+        indicator.innerText = `${tierTitle}朋友圈 · 共 ${contactsList.length} 位好友`;
+      }
+    }
+
+    // 区域 2：渲染空白聊天区域
+    function renderEmptyChat() {
+      document.getElementById("chat-header-name").innerText = "微信聊天历史";
+      document.getElementById("chat-header-wxid").innerText = "未选择好友";
+      document.getElementById("chat-msg-count").innerText = "0";
+
+      const chatBox = document.getElementById("chat-message-stream");
+      chatBox.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#9ca3af; text-align:center; padding:40px 20px; user-select:none;">
+          <div style="width:68px; height:68px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:14px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.05);">💬</div>
+          <div style="font-size:15px; font-weight:600; color:#334155; margin-bottom:6px;">未选择好友</div>
+          <div style="font-size:12px; color:#64748b; max-width:320px; line-height:1.6;">请在左侧列表中点击选择任意好友以调取私域聊天历史，右侧将自动呈现 AI 意向画像与定制触达话术。</div>
+        </div>
+      `;
+
+      // 禁用输入框
+      const composer = document.getElementById("composer-text");
+      if (composer) {
+        composer.value = "";
+        composer.placeholder = "请先从左侧列表中选择好友以发送微信消息...";
+        composer.disabled = true;
+      }
+    }
+
+    // 右侧分析画像：渲染空白引导
+    function renderEmptyAnalysis() {
+      const container = document.getElementById("analysis-container");
+      const tierNames = {
+        'ALL': '全部好友',
+        'S': 'S级-强意向好友',
+        'A': 'A级-明确好友',
+        'B': 'B级好友',
+        'C': 'C级好友',
+        'D': 'D级好友'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级好友`;
+      container.innerHTML = `
+        <div style="padding:24px 16px; text-align:center; color:#64748b;">
+          <div style="width:52px; height:52px; border-radius:50%; background:#ecfdf5; display:flex; align-items:center; justify-content:center; font-size:26px; margin:16px auto 12px auto;">🎯</div>
+          <div style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:6px;">微信好友微创业意向全景</div>
+          <div style="font-size:12px; color:#64748b; line-height:1.6; margin-bottom:16px;">当前处于【${tierTitle} · 朋友圈动态】视角。在左侧列表中点击任一好友，即可在此加载该好友专属的微创业痛点画像与定制触达话术。</div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:left; font-size:12px; color:#475569; line-height:1.7;">
+            <div style="font-weight:600; margin-bottom:4px; color:#1e293b;">💡 快速指引：</div>
+            <div>• 中间正在浏览朋友圈动态，已自动按【${tierTitle}】过滤展示；</div>
+            <div>• 可直接在动态中点击好友头像查看简历，点击【查看私信】调取历史聊天；</div>
+            <div>• 点击左侧分类标签（S/A/B/C/D）可切换不同级别并联动过滤朋友圈。</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 辅助匹配联系人下标
+    function findContactIndex(wxid, nickname) {
+      if (!contactsList || contactsList.length === 0) return -1;
+      let idx = -1;
+      if (wxid) {
+        idx = contactsList.findIndex(c => c.wxid === wxid || (c.realWxid && c.realWxid === wxid));
+      }
+      if (idx === -1 && nickname) {
+        idx = contactsList.findIndex(c => c.name === nickname || c.nickname === nickname || c.remark === nickname);
+      }
+      return idx;
+    }
+
+    // 根据 wxid 自动定位并选中联系人（若不在当前列表则自动切换分类）
+    async function selectContactByWxid(wxid) {
+      if (!wxid) return;
+      const idx = contactsList.findIndex(c => c.wxid === wxid || (c.realWxid && c.realWxid === wxid));
+      if (idx >= 0) {
+        await selectContact(idx);
+        return;
+      }
+      const c = findContactFromAnySource(wxid, null);
+      if (c) {
+        if (c.tier && c.tier !== currentFilterTier) {
+          const targetChip = document.querySelector(`.tier-chip[onclick*="'${c.tier}'"]`) || document.querySelector(`.tier-chip[onclick*="'ALL'"]`);
+          if (targetChip) {
+            currentFilterTier = c.tier;
+            tierAutoLoadCount = 0;
+            document.querySelectorAll(".tier-chip").forEach(el => el.classList.remove("active"));
+            targetChip.classList.add("active");
+
+            let url = `/api/contacts?tier=${encodeURIComponent(currentFilterTier)}`;
+            if (currentSearchText) url += `&search=${encodeURIComponent(currentSearchText)}`;
+            const res = await fetch(url);
+            const json = await res.json();
+            contactsList = json.data || [];
+            renderContactsList();
+
+            const newIdx = contactsList.findIndex(x => x.wxid === wxid || (x.realWxid && x.realWxid === wxid));
+            if (newIdx >= 0) {
+              await selectContact(newIdx);
+              return;
+            }
+          }
+        }
+      }
+      openContactCvProfile(wxid);
+    }
+
+    // 区域 3：加载朋友圈首页公共时间线 (sns_get_first_page)
+    async function loadFirstPageMoments() {
+      const momentsBox = document.getElementById("moments-stream");
+      const titleElem = document.getElementById("moments-panel-title");
+      const badgeElem = document.getElementById("moments-panel-badge");
+      const cvBtn = document.getElementById("btn-moments-cv");
+      const backBtn = document.getElementById("btn-back-timeline");
+
+      const tierNames = {
+        'ALL': '全部',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级',
+        'C': 'C级',
+        'D': 'D级'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
+
+      if (titleElem) titleElem.innerText = currentFilterTier === 'ALL' ? "朋友圈首页动态" : `朋友圈动态 · ${tierTitle}`;
+      if (badgeElem) {
+        badgeElem.innerText = currentFilterTier === 'ALL' ? "公共时间线 (sns_get_first_page)" : `筛选中 · ${tierTitle}`;
+        badgeElem.style.background = "#ecfdf5";
+        badgeElem.style.color = "#047857";
+      }
+      if (cvBtn) cvBtn.style.display = "none";
+      if (backBtn) backBtn.style.display = "none";
+
+      momentsBox.innerHTML = `
+        <div style="text-align:center; padding:60px 20px; color:#64748b;">
+          <div class="loading-spin" style="border-color:#07c160; border-top-color:transparent; width:30px; height:30px; margin:0 auto 12px auto;"></div>
+          <div style="font-size:13px; font-weight:500;">正在获取朋友圈动态 (sns_get_first_page)...</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:4px;">实时读取微信 Hook 公共时间线流</div>
+        </div>
+      `;
+
+      try {
+        const res = await fetch('/api/moments/first-page');
+        if (!res.ok) throw new Error("获取朋友圈首页失败");
+        const data = await res.json();
+        rawHomeMomentsList = data.moments || [];
+        momentsPagination.firstPageMd5 = data.firstPageMd5 || '';
+        momentsPagination.session = data.session || '';
+        momentsPagination.hasMore = true;
+        if (rawHomeMomentsList.length > 0) {
+          momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
+        }
+        renderTimelineMoments();
+      } catch (err) {
+        momentsBox.innerHTML = `
+          <div style="text-align:center; padding:50px 20px; color:#ef4444;">
+            <div style="font-size:32px; margin-bottom:8px;">⚠️</div>
+            <div style="font-size:13px; font-weight:600;">加载朋友圈首页失败</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:4px;">${err.message}</div>
+            <button onclick="loadFirstPageMoments()" class="btn-pitch" style="margin-top:12px;">重试加载</button>
+          </div>
+        `;
+      }
+    }
+
+    // 区域 3：统一生成仿真实微信朋友圈单条卡片 HTML (含点赞、评论、回复、删除交互)
+    function renderMomentCardHtml(m, isHomePage, defaultContact) {
+      let authorAvatar, authorName, authorWxid, tier = '', remark = '', matchedIdx = -1;
+      if (isHomePage) {
+        matchedIdx = findContactIndex(m.userName, m.nickname);
+        const contactFromMap = findContactFromAnySource(m.userName, m.nickname);
+
+        authorAvatar = m.avatar || (contactFromMap && contactFromMap.avatar) || (matchedIdx >= 0 ? contactsList[matchedIdx].avatar : 'https://i.pravatar.cc/150?img=5');
+        authorName = m.nickname || (contactFromMap && contactFromMap.name) || (matchedIdx >= 0 ? contactsList[matchedIdx].name : (m.userName || '微信好友'));
+        tier = m.tier || (contactFromMap && contactFromMap.tier) || (matchedIdx >= 0 ? contactsList[matchedIdx].tier : '');
+        remark = m.remark || (contactFromMap && contactFromMap.remark) || (matchedIdx >= 0 ? contactsList[matchedIdx].remark : '');
+        authorWxid = m.userName || (contactFromMap && (contactFromMap.realWxid || contactFromMap.wxid)) || (matchedIdx >= 0 ? contactsList[matchedIdx].wxid : '');
+      } else {
+        authorAvatar = (defaultContact && defaultContact.avatar) || 'https://i.pravatar.cc/150?img=3';
+        authorName = (defaultContact && defaultContact.name) || '好友';
+        tier = (defaultContact && defaultContact.tier) || '';
+        remark = (defaultContact && defaultContact.remark) || '';
+        authorWxid = (defaultContact && defaultContact.wxid) || m.userName || '';
+      }
+
+      const toWxid = m.toWxid || authorWxid || '';
+      const snsId = m.id || '';
+      const isLiked = !!m.isLiked;
+      const likes = m.likes || [];
+      const comments = m.comments || [];
+      const hasLikes = likes.length > 0;
+      const hasComments = comments.length > 0;
+
+      return `
+        <div class="moments-item" id="moment-card-${snsId}" data-tier="${tier}">
+          <img class="moments-author-avatar" src="${authorAvatar}" 
+            onclick="${authorWxid ? `openContactCvProfile('${escapeJs(authorWxid)}')` : ''}" 
+            title="${escapeHtml(authorName)}${tier ? ` [${tier}级]` : ''} 点击查看简历档案" 
+            onerror="this.src='https://i.pravatar.cc/150?img=5'">
+          <div class="moments-content">
+            <div class="moments-author-name" style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="cursor:pointer;" onclick="${authorWxid ? `openContactCvProfile('${escapeJs(authorWxid)}')` : ''}">${escapeHtml(authorName)}</span>
+                ${tier ? `<span class="tier-badge-sub badge-${tier}" style="position:static; transform:none; display:inline-block; font-size:10px; padding:1px 5px;">${tier}级</span>` : ''}
+                ${remark ? `<span style="font-size:11px; color:#64748b; font-weight:normal;">(${escapeHtml(remark)})</span>` : ''}
+              </div>
+              ${authorWxid ? `
+                <button class="btn-pitch" style="font-size:10px; padding:2px 8px; height:22px; color:#0284c7; border-color:#bae6fd; background:#f0f9ff;" 
+                  onclick="event.stopPropagation(); selectContactByWxid('${escapeJs(authorWxid)}');" 
+                  title="切换查看该好友的聊天记录与 AI 分析">
+                  💬 查看私信
+                </button>
+              ` : ''}
+            </div>
+            
+            <div class="moments-text" style="margin-top:4px;">${escapeHtml(m.content || '')}</div>
+            
+            ${m.images && m.images.length ? `
+              <div class="moments-grid-pics ${m.images.length === 1 ? 'single-pic' : ''}">
+                ${m.images.map((img, idx) => {
+                  const pId = `moment-img-${snsId}-${idx}`;
+                  const isSingle = m.images.length === 1;
+                  return `
+                    <div class="moment-pic-placeholder" 
+                         id="${pId}" 
+                         data-url="${escapeHtml(img)}" 
+                         data-snsid="${snsId}" 
+                         data-idx="${idx}"
+                         data-total="${m.images.length}"
+                         onclick="handleMomentPicPlaceholder(this)"
+                         title="点击下载到 TempCache 并弹窗查看大图">
+                      <div class="placeholder-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                      </div>
+                      <div class="placeholder-label">${isSingle ? '查看图片' : `图片 ${idx + 1}`}</div>
+                      <div class="placeholder-sub">点击下载</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : ''}
+            
+            <!-- 时间与微信点赞/评论操作按钮行 -->
+            <div class="moments-meta">
+              <span class="moments-time">${m.date || '近期'}</span>
+              <div class="moments-action-group">
+                <button class="moments-act-btn ${isLiked ? 'liked' : ''}" id="btn-like-${snsId}" 
+                  onclick="toggleMomentLike('${snsId}', '${escapeJs(toWxid)}')" 
+                  title="${isLiked ? '取消赞 (sns_unlike)' : '点赞 (sns_like)'}">
+                  <span>${isLiked ? '❤️' : '🤍'}</span>
+                  <span>${isLiked ? '取消' : '赞'}</span>
+                </button>
+                <button class="moments-act-btn" onclick="openMomentCommentBox('${snsId}', '${escapeJs(toWxid)}')" title="发表评论 (sns_do_comment)">
+                  <span>💬</span>
+                  <span>评论</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 内联平滑输入框 (支持评论与回复) -->
+            <div class="moments-inline-composer" id="composer-${snsId}" style="display:none;">
+              <input type="text" class="inline-comment-input" id="input-${snsId}" placeholder="评论..." onkeydown="if(event.key==='Enter')submitMomentComposer('${snsId}')" />
+              <button class="btn-inline-send" id="btn-send-${snsId}" onclick="submitMomentComposer('${snsId}')">发送</button>
+              <button class="btn-inline-cancel" onclick="closeMomentComposer('${snsId}')">取消</button>
+            </div>
+
+            <!-- 微信灰底圆角气泡盒 (点赞 + 评论列表) -->
+            ${(hasLikes || hasComments) ? `
+              <div class="moments-interaction-box" id="box-${snsId}">
+                ${hasLikes ? `
+                  <div class="moments-likes">
+                    <span>❤️</span>
+                    ${likes.map(u => `<span>${escapeHtml(u)}</span>`).join('、')}
+                  </div>
+                ` : ''}
+                
+                ${(hasLikes && hasComments) ? `<div class="moments-likes-divider"></div>` : ''}
+                
+                ${hasComments ? `
+                  <div class="moments-comments">
+                    ${comments.map(c => {
+                      const isSelfComment = !!c.isSelf || (myWxProfile.wxid && (c.userName === myWxProfile.wxid || c.user === myWxProfile.nickname));
+                      const authorDisp = c.user || c.userName || '微信用户';
+                      return `
+                        <div class="comment-row" id="comment-row-${c.commentId || ''}">
+                          <span class="comment-author" onclick="${c.userName ? `openContactCvProfile('${escapeJs(c.userName)}')` : ''}">${escapeHtml(authorDisp)}</span>
+                          ${(c.replyToUserName || c.replyToUser) ? `
+                            <span class="comment-reply-label">回复</span>
+                            <span class="comment-author" onclick="${c.replyToUser ? `openContactCvProfile('${escapeJs(c.replyToUser)}')` : ''}">${escapeHtml(c.replyToUserName || c.replyToUser)}</span>
+                          ` : ''}
+                          <span class="comment-colon">:</span>
+                          <span class="comment-text">${escapeHtml(c.text || '')}</span>
+                          <div class="comment-acts">
+                            ${isSelfComment ? `
+                              <button class="btn-comment-sub del" onclick="deleteMomentComment('${snsId}', '${c.commentId || ''}')" title="删除我的评论 (sns_del_comment)">删除</button>
+                            ` : `
+                              <button class="btn-comment-sub" onclick="openMomentReplyBox('${snsId}', '${c.commentId || ''}', '${escapeJs(authorDisp)}', '${escapeJs(toWxid)}')" title="回复此评论 (sns_comment_reply)">回复</button>
+                            `}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            ` : `<div class="moments-interaction-box" id="box-${snsId}" style="display:none;"></div>`}
+          </div>
+        </div>
+      `;
+    }
+
+    // 区域 3：渲染朋友圈时间线（根据当前筛选等级 currentFilterTier 动态过滤）
+    function renderTimelineMoments() {
+      const displayMoments = getFilteredTimelineMoments();
+      currentMomentsList = displayMoments;
+      currentMomentsContact = null;
+
+      const momentsBox = document.getElementById("moments-stream");
+      const titleElem = document.getElementById("moments-panel-title");
+      const badgeElem = document.getElementById("moments-panel-badge");
+      const cvBtn = document.getElementById("btn-moments-cv");
+      const backBtn = document.getElementById("btn-back-timeline");
+
+      if (cvBtn) cvBtn.style.display = "none";
+      if (backBtn) backBtn.style.display = "none";
+
+      const tierNames = {
+        'ALL': '全部',
+        'S': 'S级-强意向',
+        'A': 'A级-明确',
+        'B': 'B级',
+        'C': 'C级',
+        'D': 'D级'
+      };
+      const tierTitle = tierNames[currentFilterTier] || `${currentFilterTier}级`;
+
+      if (titleElem) {
+        titleElem.innerText = currentFilterTier === 'ALL' ? "朋友圈首页动态" : `朋友圈动态 · ${tierTitle}`;
+      }
+      if (badgeElem) {
+        if (currentFilterTier === 'ALL') {
+          badgeElem.innerText = `公共时间线 (${rawHomeMomentsList.length} 条)`;
+          badgeElem.style.background = "#ecfdf5";
+          badgeElem.style.color = "#047857";
+        } else {
+          badgeElem.innerText = `已筛选 ${tierTitle} (${displayMoments.length} 条)`;
+          badgeElem.style.background = currentFilterTier === 'S' ? '#fff7ed' : (currentFilterTier === 'A' ? '#f5f3ff' : '#eff6ff');
+          badgeElem.style.color = currentFilterTier === 'S' ? '#c2410c' : (currentFilterTier === 'A' ? '#6d28d9' : '#1d4ed8');
+        }
+      }
+
+      let feedContent = '';
+
+      if (rawHomeMomentsList.length === 0) {
+        feedContent = `
+          <div style="text-align:center; padding:50px 20px; color:#9ca3af;">
+            <div style="font-size:36px; margin-bottom:10px;">📷</div>
+            <div style="font-size:14px; font-weight:600; color:#475569;">暂无朋友圈首页缓存动态</div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.5;">可点击右上角【🔄 刷新朋友圈】向微信发送 <code>sns_get_first_page</code> 指令实时拉取最新时间线</div>
+          </div>
+        `;
+      } else if (displayMoments.length === 0) {
+        // 如果当前分类没有匹配的动态，且微信后台还有更多朋友圈分页，自动预拉取下一页进行深度匹配 (最多重试 3 次)
+        if (momentsPagination.hasMore && !momentsPagination.isLoading && currentFilterTier !== 'ALL' && tierAutoLoadCount < 3) {
+          tierAutoLoadCount++;
+          console.log(`[Moments Filter] 当前【${tierTitle}】暂无已加载动态，自动深入拉取下一页匹配 (第 ${tierAutoLoadCount} 次)...`);
+          setTimeout(() => {
+            loadNextPageMoments();
+          }, 250);
+          feedContent = `
+            <div style="text-align:center; padding:50px 20px; color:#64748b;">
+              <div class="loading-spin" style="border-color:#ea580c; border-top-color:transparent; width:28px; height:28px; margin:0 auto 12px auto;"></div>
+              <div style="font-size:14px; font-weight:600; color:#334155;">正在深度检索【${tierTitle}】好友朋友圈动态...</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:6px;">已扫描前 ${rawHomeMomentsList.length} 条，正在向微信后台拉取下一页 (sns_get_next_page)</div>
+            </div>
+          `;
+        } else {
+          feedContent = `
+            <div style="text-align:center; padding:50px 20px; color:#9ca3af;">
+              <div style="font-size:36px; margin-bottom:10px;">🎯</div>
+              <div style="font-size:14px; font-weight:600; color:#475569;">暂无【${tierTitle}】好友的朋友圈动态</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.5;">已缓存时间线 (${rawHomeMomentsList.length} 条) 中暂未发现【${tierTitle}】好友动态</div>
+              <div style="margin-top:14px;">
+                <button onclick="loadNextPageMoments()" class="btn-pitch" style="font-size:12px; padding:6px 14px;">向下滑动继续拉取下一页朋友圈</button>
+              </div>
+            </div>
+            <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
+              <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
+                <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
+                <span id="moments-bottom-hint">点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓</span>
+              </button>
+            </div>
+          `;
+        }
+      } else {
+        feedContent = displayMoments.map(m => renderMomentCardHtml(m, true, null)).join('') + `
+          <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
+            <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
+              <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
+              <span id="moments-bottom-hint">点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓</span>
+            </button>
+          </div>
+        `;
+      }
+
+      momentsBox.innerHTML = `
+        <div class="moments-cover-area">
+          <img class="cover-bg" src="https://picsum.photos/seed/wechat-sns-feed/800/260" alt="cover" onerror="this.src='https://picsum.photos/seed/bg1/800/260'">
+          <div class="user-profile-badge" style="cursor:default;">
+            <div class="moments-user-name">
+              <span>${currentFilterTier === 'ALL' ? '朋友圈首页动态' : `${tierTitle}朋友圈`}</span>
+              <span class="sub-hint" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#07c160')}; color:#fff;">
+                ${currentFilterTier === 'ALL' ? `公共时间线 (${rawHomeMomentsList.length} 条)` : `已过滤 ${tierTitle} (${displayMoments.length} / ${rawHomeMomentsList.length} 条)`}
+              </span>
+            </div>
+            <div class="moments-avatar-container">
+              <img class="moments-user-avatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&h=120&q=80" alt="avatar">
+              <div class="moments-avatar-cv-chip" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#059669')};">
+                ${currentFilterTier === 'ALL' ? '公共流' : `${currentFilterTier}级流`}
+              </div>
+            </div>
+          </div>
+        </div>
+        ${feedContent}
+      `;
+
+      // 渲染完成后启动视口哨兵观察
+      setupMomentsObserver();
+    }
+
+    // 兼容旧接口
+    function renderFirstPageMoments(moments) {
+      if (moments) rawHomeMomentsList = moments;
+      renderTimelineMoments();
+    }
+
+    // 区域 3：滚动触底或点击加载下一页朋友圈 (sns_get_next_page)
+    async function loadNextPageMoments() {
+      if (!isHomeTimelineMode) return;
+      if (momentsPagination.isLoading || !momentsPagination.hasMore) return;
+
+      if (!momentsPagination.lastItemId && rawHomeMomentsList.length > 0) {
+        momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
+      }
+      if (!momentsPagination.lastItemId) {
+        const cards = document.querySelectorAll(".moments-item[id^='moment-card-']");
+        if (cards.length > 0) {
+          momentsPagination.lastItemId = cards[cards.length - 1].id.replace('moment-card-', '');
+        }
+      }
+      if (!momentsPagination.lastItemId) {
+        console.warn("[Moments] 未获取到有效 lastItemId，无法分页");
+        return;
+      }
+
+      momentsPagination.isLoading = true;
+
+      const spin = document.getElementById("spin-load-next");
+      const bottomHint = document.getElementById("moments-bottom-hint");
+      const loadBtn = document.getElementById("btn-load-next-page");
+
+      if (spin) spin.style.display = "inline-block";
+      if (bottomHint) bottomHint.innerText = "正在加载下一页朋友圈 (sns_get_next_page)...";
+      if (loadBtn) loadBtn.disabled = true;
+
+      try {
+        console.log("[Moments] 正在请求下一页:", {
+          lastItemId: momentsPagination.lastItemId,
+          firstPageMd5: momentsPagination.firstPageMd5,
+          sessionLen: momentsPagination.session ? momentsPagination.session.length : 0
+        });
+
+        const res = await fetch('/api/moments/next-page', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lastItemId: String(momentsPagination.lastItemId),
+            firstPageMd5: momentsPagination.firstPageMd5 || '',
+            session: momentsPagination.session || ''
+          })
+        });
+
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        console.log("[Moments] 下一页响应:", data);
+
+        const nextList = data.moments || [];
+        if (data.session) momentsPagination.session = data.session;
+        if (data.firstPageMd5) momentsPagination.firstPageMd5 = data.firstPageMd5;
+
+        if (nextList.length > 0) {
+          momentsPagination.lastItemId = nextList[nextList.length - 1].id || momentsPagination.lastItemId;
+          const newItems = nextList.filter(nm => !rawHomeMomentsList.some(em => String(em.id) === String(nm.id)));
+          rawHomeMomentsList = rawHomeMomentsList.concat(newItems.length > 0 ? newItems : nextList);
+
+          // 重新根据当前分类筛选展示朋友圈时间线
+          renderTimelineMoments();
+
+          if (!data.hasMore) {
+            momentsPagination.hasMore = false;
+            const bh = document.getElementById("moments-bottom-hint");
+            if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
+          }
+        } else {
+          momentsPagination.hasMore = false;
+          const bh = document.getElementById("moments-bottom-hint");
+          if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
+        }
+      } catch (err) {
+        console.error("[Moments] 加载下一页异常:", err);
+        showToast("加载下一页朋友圈失败: " + err.message, "warning");
+        if (bottomHint) bottomHint.innerText = "加载失败，点击重试 (sns_get_next_page)";
+        if (loadBtn) loadBtn.disabled = false;
+      } finally {
+        momentsPagination.isLoading = false;
+        if (spin) spin.style.display = "none";
+      }
+    }
+
+    // ========== 微信朋友圈真实交互逻辑 (点赞、取消赞、评论、回复、删除) ==========
+    // 展开一级评论输入框 (sns_do_comment)
+    function openMomentCommentBox(snsId, toWxid) {
+      activeComposerTarget[snsId] = { commentId: null, replyToUser: null, toWxid: toWxid };
+      const composer = document.getElementById(`composer-${snsId}`);
+      const input = document.getElementById(`input-${snsId}`);
+      if (composer && input) {
+        composer.style.display = 'flex';
+        input.placeholder = '评论...';
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    // 展开针对某条评论的二级回复输入框 (sns_comment_reply)
+    function openMomentReplyBox(snsId, commentId, replyToUserName, toWxid) {
+      activeComposerTarget[snsId] = { commentId: commentId, replyToUser: replyToUserName, toWxid: toWxid };
+      const composer = document.getElementById(`composer-${snsId}`);
+      const input = document.getElementById(`input-${snsId}`);
+      if (composer && input) {
+        composer.style.display = 'flex';
+        input.placeholder = `回复 ${replyToUserName}...`;
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    // 关闭内联输入框
+    function closeMomentComposer(snsId) {
+      const composer = document.getElementById(`composer-${snsId}`);
+      if (composer) {
+        composer.style.display = 'none';
+      }
+      delete activeComposerTarget[snsId];
+    }
+
+    // 提交发表评论或回复
+    async function submitMomentComposer(snsId) {
+      const input = document.getElementById(`input-${snsId}`);
+      const sendBtn = document.getElementById(`btn-send-${snsId}`);
+      if (!input) return;
+      const text = (input.value || '').trim();
+      if (!text) {
+        showToast("请输入评论内容", "warning");
+        return;
+      }
+
+      const target = activeComposerTarget[snsId] || {};
+      const isReply = !!target.commentId;
+
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerText = "发送中...";
+      }
+
+      try {
+        let res, data;
+        if (isReply) {
+          // 5. sns_comment_reply
+          res = await fetch('/api/wechat/moments/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              snsId: snsId,
+              commentId: parseInt(target.commentId, 10),
+              content: text
+            })
+          });
+          data = await res.json();
+        } else {
+          // 3. sns_do_comment
+          res = await fetch('/api/wechat/moments/comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              snsId: snsId,
+              toWxid: target.toWxid || '',
+              comment: text
+            })
+          });
+          data = await res.json();
+        }
+
+        if (!data || !data.success) {
+          throw new Error((data && data.message) || "操作失败");
+        }
+
+        showToast(isReply ? "回复发表成功" : "评论发表成功", "success");
+        closeMomentComposer(snsId);
+
+        // 乐观更新本地 moment 数据与气泡框
+        const m = currentMomentsList.find(x => String(x.id) === String(snsId));
+        if (m) {
+          if (!m.comments) m.comments = [];
+          const newComment = {
+            commentId: data.commentId || Date.now(),
+            user: myWxProfile.nickname || '我',
+            userName: myWxProfile.wxid || 'self',
+            text: text,
+            replyToUser: isReply ? target.replyToUser : '',
+            replyToUserName: isReply ? target.replyToUser : '',
+            isSelf: true
+          };
+          m.comments.push(newComment);
+          updateMomentInteractionBox(m);
+        }
+      } catch (err) {
+        showToast("发表评论失败: " + err.message, "danger");
+      } finally {
+        if (sendBtn) {
+          sendBtn.disabled = false;
+          sendBtn.innerText = "发送";
+        }
+      }
+    }
+
+    // 1. 朋友圈点赞 (sns_like) 与 2. 取消点赞 (sns_unlike)
+    async function toggleMomentLike(snsId, toWxid) {
+      const m = currentMomentsList.find(x => String(x.id) === String(snsId));
+      const isLiked = m ? !!m.isLiked : false;
+      const endpoint = isLiked ? '/api/wechat/moments/unlike' : '/api/wechat/moments/like';
+      const actionText = isLiked ? "取消点赞" : "点赞";
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snsId: snsId, toWxid: toWxid || (m ? m.toWxid : '') || '' })
+        });
+        const data = await res.json();
+        if (!data || !data.success) {
+          throw new Error((data && data.message) || `${actionText}失败`);
+        }
+
+        showToast(`${actionText}成功`, isLiked ? "info" : "success");
+
+        // 本地状态更新
+        if (m) {
+          m.isLiked = !isLiked;
+          if (!m.likes) m.likes = [];
+          const myName = myWxProfile.nickname || '我';
+          if (m.isLiked) {
+            if (!m.likes.includes(myName)) m.likes.push(myName);
+          } else {
+            m.likes = m.likes.filter(name => name !== myName && name !== '我');
+          }
+
+          // 更新按钮样式
+          const btn = document.getElementById(`btn-like-${snsId}`);
+          if (btn) {
+            if (m.isLiked) {
+              btn.className = "moments-act-btn liked";
+              btn.innerHTML = `<span>❤️</span><span>取消</span>`;
+              btn.title = "取消赞 (sns_unlike)";
+            } else {
+              btn.className = "moments-act-btn";
+              btn.innerHTML = `<span>🤍</span><span>赞</span>`;
+              btn.title = "点赞 (sns_like)";
+            }
+          }
+          updateMomentInteractionBox(m);
+        }
+      } catch (err) {
+        showToast(`${actionText}失败: ` + err.message, "danger");
+      }
+    }
+
+    // 4. 删除朋友圈评论 (sns_del_comment)
+    async function deleteMomentComment(snsId, commentId) {
+      if (!confirm("确定删除此条评论吗？")) return;
+
+      try {
+        const res = await fetch('/api/wechat/moments/delete-comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snsId: snsId, commentId: String(commentId) })
+        });
+        const data = await res.json();
+        if (!data || !data.success) {
+          throw new Error((data && data.message) || "删除评论失败");
+        }
+
+        showToast("评论已删除", "success");
+
+        const m = currentMomentsList.find(x => String(x.id) === String(snsId));
+        if (m && m.comments) {
+          m.comments = m.comments.filter(c => String(c.commentId) !== String(commentId));
+          updateMomentInteractionBox(m);
+        } else {
+          const row = document.getElementById(`comment-row-${commentId}`);
+          if (row) row.remove();
+        }
+      } catch (err) {
+        showToast("删除评论失败: " + err.message, "danger");
+      }
+    }
+
+    // 局部动态刷新朋友圈点赞与评论气泡盒
+    function updateMomentInteractionBox(m) {
+      const box = document.getElementById(`box-${m.id}`);
+      if (!box) return;
+
+      const likes = m.likes || [];
+      const comments = m.comments || [];
+      const hasLikes = likes.length > 0;
+      const hasComments = comments.length > 0;
+
+      if (!hasLikes && !hasComments) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+      }
+
+      box.style.display = 'block';
+      let html = '';
+      if (hasLikes) {
+        html += `
+          <div class="moments-likes">
+            <span>❤️</span>
+            ${likes.map(u => `<span>${escapeHtml(u)}</span>`).join('、')}
+          </div>
+        `;
+      }
+      if (hasLikes && hasComments) {
+        html += `<div class="moments-likes-divider"></div>`;
+      }
+      if (hasComments) {
+        html += `
+          <div class="moments-comments">
+            ${comments.map(c => {
+              const isSelfComment = !!c.isSelf || (myWxProfile.wxid && (c.userName === myWxProfile.wxid || c.user === myWxProfile.nickname));
+              const authorDisp = c.user || c.userName || '微信用户';
+              return `
+                <div class="comment-row" id="comment-row-${c.commentId || ''}">
+                  <span class="comment-author" onclick="${c.userName ? `openContactCvProfile('${escapeJs(c.userName)}')` : ''}">${escapeHtml(authorDisp)}</span>
+                  ${(c.replyToUserName || c.replyToUser) ? `
+                    <span class="comment-reply-label">回复</span>
+                    <span class="comment-author" onclick="${c.replyToUser ? `openContactCvProfile('${escapeJs(c.replyToUser)}')` : ''}">${escapeHtml(c.replyToUserName || c.replyToUser)}</span>
+                  ` : ''}
+                  <span class="comment-colon">:</span>
+                  <span class="comment-text">${escapeHtml(c.text || '')}</span>
+                  <div class="comment-acts">
+                    ${isSelfComment ? `
+                      <button class="btn-comment-sub del" onclick="deleteMomentComment('${m.id}', '${c.commentId || ''}')" title="删除我的评论 (sns_del_comment)">删除</button>
+                    ` : `
+                      <button class="btn-comment-sub" onclick="openMomentReplyBox('${m.id}', '${c.commentId || ''}', '${escapeJs(authorDisp)}', '${escapeJs(m.toWxid || m.userName || '')}')" title="回复此评论 (sns_comment_reply)">回复</button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+      box.innerHTML = html;
     }
 
     // 渲染左侧导航列表
@@ -2435,7 +3596,7 @@
       }
 
       container.innerHTML = contactsList.map((c, idx) => {
-        const isSelected = idx === currentIndex;
+        const isSelected = !isHomeTimelineMode && idx === currentIndex;
         const statusMap = {
           LINKED: `<span class="status-tag tag-linked">已加入链接</span>`,
           STARRED: `<span class="status-tag tag-star">重点跟进</span>`,
@@ -2464,8 +3625,16 @@
     // 3. 选中某个好友加载详情 (聊天、朋友圈、AI意向分析)
     async function selectContact(index) {
       if (index < 0 || index >= contactsList.length) return;
+      isHomeTimelineMode = false;
       currentIndex = index;
       const contact = contactsList[currentIndex];
+
+      // 恢复输入框可用状态
+      const composer = document.getElementById("composer-text");
+      if (composer) {
+        composer.placeholder = "输入向对方发送的微信消息...";
+        composer.disabled = false;
+      }
 
       // 更新导航指示
       document.getElementById("nav-index-indicator").innerText = `当前第 ${currentIndex + 1} / ${contactsList.length} 位`;
@@ -2531,6 +3700,20 @@
     // 渲染朋友圈动态
     function renderMoments(moments, contact, snsNotice) {
       const momentsBox = document.getElementById("moments-stream");
+      const titleElem = document.getElementById("moments-panel-title");
+      const badgeElem = document.getElementById("moments-panel-badge");
+      const cvBtn = document.getElementById("btn-moments-cv");
+
+      if (titleElem) titleElem.innerText = "好友朋友圈动态";
+      if (badgeElem) {
+        badgeElem.innerText = "相册实时同步";
+        badgeElem.style.background = "#dbeafe";
+        badgeElem.style.color = "#1e40af";
+      }
+      if (cvBtn) cvBtn.style.display = "inline-flex";
+      const backBtn = document.getElementById("btn-back-timeline");
+      if (backBtn) backBtn.style.display = "inline-flex";
+
       let feedContent = '';
 
       // 顶部隐私提示条（如：“朋友仅展示最近三天的朋友圈”）
@@ -2544,6 +3727,9 @@
         `;
       }
 
+      currentMomentsList = moments || [];
+      currentMomentsContact = contact;
+
       if (!moments || moments.length === 0) {
         feedContent = `
           <div style="text-align:center; padding:40px 20px; color:#9ca3af;">
@@ -2553,57 +3739,7 @@
           </div>
         `;
       } else {
-        feedContent = moments.map(m => `
-          <div class="moments-item">
-            <img class="moments-author-avatar" src="${contact.avatar}" onclick="openContactCvProfile('${contact.wxid}')" title="点击获取【${contact.name}】详细资料与简历 (get_contact_fast)" onerror="this.src='https://i.pravatar.cc/150?img=3'">
-            <div class="moments-content">
-              <div class="moments-author-name">${contact.name}</div>
-              <div class="moments-text">${m.content}</div>
-              ${m.images && m.images.length ? `
-                <div class="moments-grid-pics ${m.images.length === 1 ? 'single-pic' : ''}">
-                  ${m.images.map((img, idx) => {
-                    const pId = `moment-img-${m.id || 'm'}-${idx}`;
-                    const isSingle = m.images.length === 1;
-                    return `
-                      <div class="moment-pic-placeholder" 
-                           id="${pId}" 
-                           data-url="${escapeHtml(img)}" 
-                           data-snsid="${m.id || 'm'}" 
-                           data-idx="${idx}"
-                           data-total="${m.images.length}"
-                           onclick="handleMomentPicPlaceholder(this)"
-                           title="点击下载到 TempCache 并弹窗查看大图">
-                        <div class="placeholder-icon">
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21 15 16 10 5 21"></polyline>
-                          </svg>
-                        </div>
-                        <div class="placeholder-label">${isSingle ? '查看图片' : `图片 ${idx + 1}`}</div>
-                        <div class="placeholder-sub">点击下载</div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              ` : ''}
-              <div class="moments-meta">
-                <span>${m.date}</span>
-                <span style="cursor:pointer; color:#576b95;">💬</span>
-              </div>
-              ${(m.likes.length || m.comments.length) ? `
-                <div class="moments-interaction-box">
-                  ${m.likes.length ? `<div class="moments-likes">❤️ ${m.likes.join('、')}</div>` : ''}
-                  ${m.comments.length ? `
-                    <div class="moments-comments">
-                      ${m.comments.map(cm => `<div><span>${cm.user}</span>: ${cm.text}</div>`).join('')}
-                    </div>
-                  ` : ''}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `).join('');
+        feedContent = moments.map(m => renderMomentCardHtml(m, false, contact)).join('');
       }
 
       const coverSrc = contact.cover || 'https://picsum.photos/seed/bg1/800/260';
@@ -2712,7 +3848,10 @@
 
     // 4. 核心决策操作：【链接】/【重点】/【忽略】
     async function decideContact(action) {
-      if (!contactsList[currentIndex]) return;
+      if (isHomeTimelineMode || currentIndex < 0 || !contactsList[currentIndex]) {
+        showToast("当前处于朋友圈首页全览视角，请在左侧列表中点击选择具体好友以执行决策操作", "info");
+        return;
+      }
       const contact = contactsList[currentIndex];
       const pitch = document.getElementById("composer-text")?.value || "";
 
@@ -2752,6 +3891,10 @@
 
     // 5. 发送微信消息
     async function sendCustomMessage() {
+      if (isHomeTimelineMode || currentIndex < 0 || !contactsList[currentIndex]) {
+        showToast("当前处于朋友圈首页全览视角，请先在左侧选择好友以发送私信", "info");
+        return;
+      }
       const contact = contactsList[currentIndex];
       if (!contact) return;
       const text = document.getElementById("composer-text").value.trim();
@@ -2785,6 +3928,19 @@
 
     // 6. 刷新朋友圈相册
     async function syncMoments() {
+      if (isHomeTimelineMode || currentIndex < 0) {
+        showToast("正在向微信底层 Hook 发送刷新朋友圈首页指令 (sns_get_first_page)...", "info");
+        try {
+          const res = await fetch('/api/wechat/sync-first-page-moments', { method: 'POST' });
+          const json = await res.json();
+          showToast(json.message || "朋友圈首页刷新完成", "success");
+          await loadFirstPageMoments();
+        } catch (err) {
+          showToast("刷新朋友圈首页失败: " + err.message, "warning");
+        }
+        return;
+      }
+
       const contact = contactsList[currentIndex];
       if (!contact) return;
       showToast("正在向微信底层 Hook 发送刷新相册指令 (sns_get_user_page2)...", "info");
@@ -3041,6 +4197,7 @@
         }
         await loadExcelFiles();
         await fetchStats();
+        await initAllContactsCache();
         await fetchContacts();
         showToast(`Excel 刷新成功！共 ${data.totalContacts || 0} 位意向好友 (Hook: ${data.hookUrl})`, "success");
       } catch (err) {
@@ -3058,13 +4215,17 @@
 
     function filterTier(tier, el) {
       currentFilterTier = tier;
+      tierAutoLoadCount = 0;
       document.querySelectorAll(".tier-chip").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
+      if (el) el.classList.add("active");
       fetchContacts();
     }
 
     function navContact(delta) {
       let nextIdx = currentIndex + delta;
+      if (isHomeTimelineMode || currentIndex < 0) {
+        nextIdx = delta > 0 ? 0 : contactsList.length - 1;
+      }
       if (nextIdx < 0) nextIdx = 0;
       if (nextIdx >= contactsList.length) nextIdx = contactsList.length - 1;
       selectContact(nextIdx);
@@ -3524,13 +4685,16 @@
     async function handleMomentPicClick(imgUrl, snsId, idx, total, targetElem) {
       const pId = `moment-img-${snsId}-${idx}`;
       const elem = targetElem || document.getElementById(pId);
+      console.log("[MomentPicClick]", { imgUrl, snsId, idx, total, elem });
 
+      // 1. 若内存或本地已经缓存，直接秒级弹出 popup
       if (momentImageCache[imgUrl]) {
         const cached = momentImageCache[imgUrl];
         openMomentImgModal(cached.localUrl, cached.fileName, cached.cachePath, snsId, idx, total, imgUrl);
         return;
       }
 
+      // 2. 占位符进入“下载中”动画状态
       if (elem) {
         elem.classList.add('downloading');
         elem.innerHTML = `
@@ -3544,7 +4708,7 @@
         const resp = await fetch('/api/moments/download-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: imgUrl })
+          body: JSON.stringify({ url: imgUrl, snsId: snsId })
         });
         const res = await resp.json();
 
@@ -3556,6 +4720,7 @@
           };
           momentImageCache[imgUrl] = cacheInfo;
 
+          // 更新卡片占位符为已下载缩略图预览
           if (elem) {
             elem.classList.remove('downloading');
             elem.classList.add('downloaded');
@@ -3566,6 +4731,7 @@
             `;
           }
 
+          // 3. 立即 popup 弹窗显示大图！
           openMomentImgModal(res.url, res.fileName, cacheInfo.cachePath, snsId, idx, total, imgUrl);
         } else {
           throw new Error(res.message || '下载图片失败');
@@ -3610,6 +4776,7 @@
         pathHint.innerHTML = `缓存位置: <b style="color:#38bdf8;">${escapeHtml(cachePath || ('WxApi.Analyses/TempCache/' + fileName))}</b>`;
       }
 
+      // 翻页导航箭头
       if (total > 1) {
         if (prevBtn) prevBtn.style.display = idx > 0 ? 'flex' : 'none';
         if (nextBtn) nextBtn.style.display = idx < total - 1 ? 'flex' : 'none';
