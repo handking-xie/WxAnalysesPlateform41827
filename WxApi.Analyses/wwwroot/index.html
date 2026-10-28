@@ -2635,12 +2635,39 @@
       return '';
     }
 
-    function getFilteredTimelineMoments() {
-      if (!currentFilterTier || currentFilterTier === 'ALL') {
-        return rawHomeMomentsList;
+    function getMomentAuthorKey(m) {
+      if (!m) return '';
+      const c = findContactFromAnySource(m.userName, m.nickname);
+      if (c && c.wxid) return c.wxid.trim().toLowerCase();
+      if (c && c.realWxid) return c.realWxid.trim().toLowerCase();
+      if (m.userName && String(m.userName).trim()) {
+        return String(m.userName).trim().toLowerCase();
       }
-      const target = currentFilterTier.toUpperCase();
-      return rawHomeMomentsList.filter(m => getMomentTier(m) === target);
+      if (c && c.name) return c.name.trim().toLowerCase();
+      if (m.nickname && String(m.nickname).trim()) {
+        return String(m.nickname).trim().toLowerCase();
+      }
+      return 'moment_' + (m.id || Math.random());
+    }
+
+    function getFilteredTimelineMoments() {
+      let list = rawHomeMomentsList || [];
+      if (currentFilterTier && currentFilterTier !== 'ALL') {
+        const target = currentFilterTier.toUpperCase();
+        list = list.filter(m => getMomentTier(m) === target);
+      }
+
+      // 朋友圈动态流：一个好友只显示一条（最新那条），除非是进入单个人的朋友圈相册详情
+      const seenAuthors = new Set();
+      const dedupedList = [];
+      for (const m of list) {
+        const authorKey = getMomentAuthorKey(m);
+        if (!seenAuthors.has(authorKey)) {
+          seenAuthors.add(authorKey);
+          dedupedList.push(m);
+        }
+      }
+      return dedupedList;
     }
 
     function escapeHtml(str) {
@@ -3152,11 +3179,11 @@
       }
       if (badgeElem) {
         if (currentFilterTier === 'ALL') {
-          badgeElem.innerText = `公共时间线 (${rawHomeMomentsList.length} 条)`;
+          badgeElem.innerText = `公共时间线 (${displayMoments.length} 位好友最新动态)`;
           badgeElem.style.background = "#ecfdf5";
           badgeElem.style.color = "#047857";
         } else {
-          badgeElem.innerText = `已筛选 ${tierTitle} (${displayMoments.length} 条)`;
+          badgeElem.innerText = `已筛选 ${tierTitle} (${displayMoments.length} 位好友最新)`;
           badgeElem.style.background = currentFilterTier === 'S' ? '#fff7ed' : (currentFilterTier === 'A' ? '#f5f3ff' : '#eff6ff');
           badgeElem.style.color = currentFilterTier === 'S' ? '#c2410c' : (currentFilterTier === 'A' ? '#6d28d9' : '#1d4ed8');
         }
@@ -3223,13 +3250,13 @@
             <div class="moments-user-name">
               <span>${currentFilterTier === 'ALL' ? '朋友圈首页动态' : `${tierTitle}朋友圈`}</span>
               <span class="sub-hint" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#07c160')}; color:#fff;">
-                ${currentFilterTier === 'ALL' ? `公共时间线 (${rawHomeMomentsList.length} 条)` : `已过滤 ${tierTitle} (${displayMoments.length} / ${rawHomeMomentsList.length} 条)`}
+                ${currentFilterTier === 'ALL' ? `一人一条 (${displayMoments.length} 位好友最新动态)` : `已过滤 ${tierTitle} (${displayMoments.length} 位好友最新动态)`}
               </span>
             </div>
             <div class="moments-avatar-container">
               <img class="moments-user-avatar" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=120&h=120&q=80" alt="avatar">
               <div class="moments-avatar-cv-chip" style="background:${currentFilterTier === 'S' ? '#ea580c' : (currentFilterTier === 'A' ? '#7c3aed' : '#059669')};">
-                ${currentFilterTier === 'ALL' ? '公共流' : `${currentFilterTier}级流`}
+                ${currentFilterTier === 'ALL' ? '最新动态' : `${currentFilterTier}级最新`}
               </div>
             </div>
           </div>
