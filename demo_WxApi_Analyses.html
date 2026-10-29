@@ -1058,6 +1058,39 @@
       background: #fecaca;
     }
 
+    /* 朋友圈顶部一键批量点赞按钮 */
+    #btn-moments-batch-like {
+      height: 26px;
+      padding: 0 10px;
+      font-size: 11px;
+      color: #e11d48;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    #btn-moments-batch-like:hover {
+      background: #ffe4e6;
+      border-color: #fda4af;
+      color: #be123c;
+    }
+    #btn-moments-batch-like.liking {
+      background: #e11d48;
+      color: #ffffff;
+      border-color: #be123c;
+      animation: pulse-batch-like 1.2s infinite ease-in-out;
+    }
+    @keyframes pulse-batch-like {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.88; transform: scale(0.97); }
+    }
+
     /* 微信点赞与评论灰底圆角气泡盒 */
     .moments-interaction-box {
       margin-top: 10px;
@@ -2245,6 +2278,9 @@
             <button class="btn-header" id="btn-back-timeline" style="display:none; height:26px; padding:0 8px; font-size:11px; color:#475569; background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; font-weight:500;" onclick="switchToHomeTimeline()" title="返回朋友圈动态时间线">
               🏠 返回动态流
             </button>
+            <button class="btn-header" id="btn-moments-batch-like" onclick="batchLikeCurrentMoments()" title="逐个点赞当前已加载的所有朋友圈 (sns_like，每个间隔1秒)">
+              <span>❤️</span><span id="btn-batch-like-text">点赞</span>
+            </button>
             <button class="btn-header" id="btn-moments-sync" style="height:26px; padding:0 8px; font-size:11px;" onclick="syncMoments()">
               🔄 刷新朋友圈
             </button>
@@ -2576,6 +2612,9 @@
     let activeComposerTarget = {}; // { [snsId]: { commentId, replyToUser, toWxid } }
     let momentsPagination = {
       isLoading: false,
+      isCoolingDown: false,
+      cooldownTimerId: null,
+      cooldownRemaining: 0,
       hasMore: true,
       firstPageMd5: '',
       session: '',
@@ -2726,7 +2765,8 @@
       if ('IntersectionObserver' in window) {
         momentsObserver = new IntersectionObserver((entries) => {
           if (entries[0] && entries[0].isIntersecting) {
-            if (isHomeTimelineMode && !momentsPagination.isLoading && momentsPagination.hasMore) {
+            // 必须不在加载中、不在2秒冷却中、且仍有未加载数据
+            if (isHomeTimelineMode && !momentsPagination.isLoading && !momentsPagination.isCoolingDown && momentsPagination.hasMore) {
               console.log("[Moments] IntersectionObserver 侦测触底，触发 loadNextPageMoments");
               loadNextPageMoments();
             }
@@ -2739,7 +2779,7 @@
       }
     }
 
-    // 监听区域 3 朋友圈滚动与滚轮事件，多重保障滑动触底触发
+    // 监听区域 3 朋友圈滚动与滚轮事件，多重保障滑动触底触发 (严格遵守2秒冷却防刷机制)
     function setupMomentsScrollListener() {
       const feed = document.getElementById("moments-stream");
       if (!feed) return;
@@ -2747,6 +2787,7 @@
       // 1. 监听常规滚动事件，阈值放宽至 350px 提前预加载
       feed.addEventListener("scroll", () => {
         if (!isHomeTimelineMode) return;
+        if (momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore) return;
         if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 350) {
           loadNextPageMoments();
         }
@@ -2755,6 +2796,7 @@
       // 2. 监听滚轮事件，当已在底部边缘且向下滑动时直接触发
       feed.addEventListener("wheel", (e) => {
         if (!isHomeTimelineMode) return;
+        if (momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore) return;
         if (e.deltaY > 0 && feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 80) {
           loadNextPageMoments();
         }
@@ -2804,6 +2846,8 @@
 
     // 切换至朋友圈动态流模式 (3 呈现按等级过滤后的朋友圈时间线，2 聊天区域置空引导)
     async function switchToHomeTimeline() {
+      if (typeof isBatchLiking !== 'undefined' && isBatchLiking) abortBatchLike = true;
+      clearMomentsCooldown();
       isHomeTimelineMode = true;
       currentIndex = -1;
       currentContactDetail = null;
@@ -2987,6 +3031,8 @@
           momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
         }
         renderTimelineMoments();
+        // 首次/刷新动态流加载成功后，开启2秒安全冷却计时器
+        startMomentsCooldown(2);
       } catch (err) {
         momentsBox.innerHTML = `
           <div style="text-align:center; padding:50px 20px; color:#ef4444;">
@@ -3200,13 +3246,13 @@
           </div>
         `;
       } else if (displayMoments.length === 0) {
-        // 如果当前分类没有匹配的动态，且微信后台还有更多朋友圈分页，自动预拉取下一页进行深度匹配 (最多重试 3 次)
-        if (momentsPagination.hasMore && !momentsPagination.isLoading && currentFilterTier !== 'ALL' && tierAutoLoadCount < 3) {
+        // 如果当前分类没有匹配的动态，且微信后台还有更多朋友圈分页，自动预拉取下一页进行深度匹配 (最多重试 3 次，每次遵守 2 秒间隔)
+        if (momentsPagination.hasMore && !momentsPagination.isLoading && !momentsPagination.isCoolingDown && currentFilterTier !== 'ALL' && tierAutoLoadCount < 3) {
           tierAutoLoadCount++;
           console.log(`[Moments Filter] 当前【${tierTitle}】暂无已加载动态，自动深入拉取下一页匹配 (第 ${tierAutoLoadCount} 次)...`);
           setTimeout(() => {
             loadNextPageMoments();
-          }, 250);
+          }, 2000);
           feedContent = `
             <div style="text-align:center; padding:50px 20px; color:#64748b;">
               <div class="loading-spin" style="border-color:#ea580c; border-top-color:transparent; width:28px; height:28px; margin:0 auto 12px auto;"></div>
@@ -3224,23 +3270,11 @@
                 <button onclick="loadNextPageMoments()" class="btn-pitch" style="font-size:12px; padding:6px 14px;">向下滑动继续拉取下一页朋友圈</button>
               </div>
             </div>
-            <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
-              <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
-                <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
-                <span id="moments-bottom-hint">点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓</span>
-              </button>
-            </div>
+            ${renderMomentsBottomAreaHtml()}
           `;
         }
       } else {
-        feedContent = displayMoments.map(m => renderMomentCardHtml(m, true, null)).join('') + `
-          <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
-            <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈">
-              <span class="loading-spin" id="spin-load-next" style="display:none; width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
-              <span id="moments-bottom-hint">点击或向下滑动加载下一页朋友圈 (sns_get_next_page) ↓</span>
-            </button>
-          </div>
-        `;
+        feedContent = displayMoments.map(m => renderMomentCardHtml(m, true, null)).join('') + renderMomentsBottomAreaHtml();
       }
 
       momentsBox.innerHTML = `
@@ -3264,8 +3298,9 @@
         ${feedContent}
       `;
 
-      // 渲染完成后启动视口哨兵观察
+      // 渲染完成后启动视口哨兵观察并同步状态
       setupMomentsObserver();
+      updateMomentsBottomUI();
     }
 
     // 兼容旧接口
@@ -3274,10 +3309,98 @@
       renderTimelineMoments();
     }
 
+    // 动态生成底部加载提示文本 (含2秒倒计时)
+    function getMomentsBottomHintText() {
+      if (!momentsPagination.hasMore) {
+        return "── 已加载全部朋友圈动态 ──";
+      }
+      if (momentsPagination.isLoading) {
+        return "正在加载下一页朋友圈 (sns_get_next_page)...";
+      }
+      if (momentsPagination.isCoolingDown) {
+        return `已加载完成，${momentsPagination.cooldownRemaining} 秒后可加载下一批...`;
+      }
+      return "向下滑动或点击加载下一页朋友圈 (sns_get_next_page) ↓";
+    }
+
+    // 动态生成朋友圈底部按钮与指示器 HTML
+    function renderMomentsBottomAreaHtml() {
+      const isDisabled = momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore;
+      const spinStyle = momentsPagination.isLoading ? "display:inline-block;" : "display:none;";
+      return `
+        <div id="moments-bottom-area" style="text-align:center; padding:18px 20px 36px 20px;">
+          <button id="btn-load-next-page" onclick="loadNextPageMoments()" class="btn-load-next-moments" title="点击或向下滑动加载下一页朋友圈" ${isDisabled ? 'disabled' : ''}>
+            <span class="loading-spin" id="spin-load-next" style="${spinStyle} width:14px; height:14px; border-color:#07c160; border-top-color:transparent; margin:0;"></span>
+            <span id="moments-bottom-hint">${getMomentsBottomHintText()}</span>
+          </button>
+        </div>
+      `;
+    }
+
+    // 同步刷新底部区域按钮与提示文字
+    function updateMomentsBottomUI() {
+      const spin = document.getElementById("spin-load-next");
+      const bottomHint = document.getElementById("moments-bottom-hint");
+      const loadBtn = document.getElementById("btn-load-next-page");
+
+      if (spin) {
+        spin.style.display = momentsPagination.isLoading ? "inline-block" : "none";
+      }
+      if (loadBtn) {
+        loadBtn.disabled = momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore;
+      }
+      if (bottomHint) {
+        bottomHint.innerText = getMomentsBottomHintText();
+      }
+    }
+
+    // 清除冷却计时器
+    function clearMomentsCooldown() {
+      if (momentsPagination.cooldownTimerId) {
+        clearInterval(momentsPagination.cooldownTimerId);
+        momentsPagination.cooldownTimerId = null;
+      }
+      momentsPagination.isCoolingDown = false;
+      momentsPagination.cooldownRemaining = 0;
+    }
+
+    // 启动每次加载后的 2 秒计时器 (严格阻断连续调用，2秒倒计时结束方可开始下一次)
+    function startMomentsCooldown(seconds = 2) {
+      clearMomentsCooldown();
+      momentsPagination.isCoolingDown = true;
+      momentsPagination.cooldownRemaining = seconds;
+      updateMomentsBottomUI();
+
+      momentsPagination.cooldownTimerId = setInterval(() => {
+        momentsPagination.cooldownRemaining--;
+        if (momentsPagination.cooldownRemaining > 0) {
+          updateMomentsBottomUI();
+        } else {
+          clearMomentsCooldown();
+          updateMomentsBottomUI();
+          // 2秒计时器结束后，检查用户若仍滑到底部区域，自动触发下一次加载
+          checkAndTriggerMomentsScroll();
+        }
+      }, 1000);
+    }
+
+    // 检测当前滚动位置，若冷却后仍处于底部则自动加载下一页
+    function checkAndTriggerMomentsScroll() {
+      if (!isHomeTimelineMode) return;
+      if (momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore) return;
+      const feed = document.getElementById("moments-stream");
+      if (!feed) return;
+      if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 350) {
+        console.log("[Moments] 2秒冷却结束且视口仍处于底部，自动触发下一页加载");
+        loadNextPageMoments();
+      }
+    }
+
     // 区域 3：滚动触底或点击加载下一页朋友圈 (sns_get_next_page)
     async function loadNextPageMoments() {
       if (!isHomeTimelineMode) return;
-      if (momentsPagination.isLoading || !momentsPagination.hasMore) return;
+      // 核心控制：加载中、2秒冷却中、或已无更多数据，直接返回
+      if (momentsPagination.isLoading || momentsPagination.isCoolingDown || !momentsPagination.hasMore) return;
 
       if (!momentsPagination.lastItemId && rawHomeMomentsList.length > 0) {
         momentsPagination.lastItemId = rawHomeMomentsList[rawHomeMomentsList.length - 1].id || '';
@@ -3294,15 +3417,9 @@
       }
 
       momentsPagination.isLoading = true;
+      updateMomentsBottomUI();
 
-      const spin = document.getElementById("spin-load-next");
-      const bottomHint = document.getElementById("moments-bottom-hint");
-      const loadBtn = document.getElementById("btn-load-next-page");
-
-      if (spin) spin.style.display = "inline-block";
-      if (bottomHint) bottomHint.innerText = "正在加载下一页朋友圈 (sns_get_next_page)...";
-      if (loadBtn) loadBtn.disabled = true;
-
+      let isSuccess = false;
       try {
         console.log("[Moments] 正在请求下一页:", {
           lastItemId: momentsPagination.lastItemId,
@@ -3333,27 +3450,30 @@
           const newItems = nextList.filter(nm => !rawHomeMomentsList.some(em => String(em.id) === String(nm.id)));
           rawHomeMomentsList = rawHomeMomentsList.concat(newItems.length > 0 ? newItems : nextList);
 
-          // 重新根据当前分类筛选展示朋友圈时间线
+          // 重新根据当前分类筛选展示朋友圈时间线 (内部自动重置底部DOM并激活观察器)
           renderTimelineMoments();
 
           if (!data.hasMore) {
             momentsPagination.hasMore = false;
-            const bh = document.getElementById("moments-bottom-hint");
-            if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
           }
         } else {
           momentsPagination.hasMore = false;
-          const bh = document.getElementById("moments-bottom-hint");
-          if (bh) bh.innerText = "── 已加载全部朋友圈动态 ──";
         }
+        isSuccess = true;
       } catch (err) {
         console.error("[Moments] 加载下一页异常:", err);
         showToast("加载下一页朋友圈失败: " + err.message, "warning");
-        if (bottomHint) bottomHint.innerText = "加载失败，点击重试 (sns_get_next_page)";
-        if (loadBtn) loadBtn.disabled = false;
       } finally {
         momentsPagination.isLoading = false;
-        if (spin) spin.style.display = "none";
+        if (isSuccess && momentsPagination.hasMore) {
+          // 每次加载后设置 timer，2秒后才可开始下一次
+          startMomentsCooldown(2);
+        } else if (!isSuccess && momentsPagination.hasMore) {
+          // 异常情况同样开启 2 秒安全缓冲
+          startMomentsCooldown(2);
+        } else {
+          updateMomentsBottomUI();
+        }
       }
     }
 
@@ -3473,54 +3593,192 @@
       }
     }
 
+    // 单条点赞核心调用 (sns_like)
+    async function likeMomentItem(m, customToWxid) {
+      if (!m || !m.id) return { success: false, message: '无效动态' };
+      const snsId = String(m.id);
+
+      let toWxid = customToWxid || m.toWxid || m.userName || '';
+      if (!toWxid && currentMomentsContact && currentMomentsContact.wxid) {
+        toWxid = currentMomentsContact.wxid;
+      }
+      if (!toWxid && typeof findContactFromAnySource === 'function') {
+        const c = findContactFromAnySource(m.userName, m.nickname);
+        if (c && (c.realWxid || c.wxid)) toWxid = c.realWxid || c.wxid;
+      }
+
+      const res = await fetch('/api/wechat/moments/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snsId: snsId, toWxid: toWxid || '' })
+      });
+      const data = await res.json();
+      if (!data || !data.success) {
+        throw new Error((data && data.message) || '点赞失败');
+      }
+
+      // 本地状态更新
+      m.isLiked = true;
+      if (!m.likes) m.likes = [];
+      const myName = (myWxProfile && myWxProfile.nickname) || '我';
+      if (!m.likes.includes(myName)) {
+        m.likes.push(myName);
+      }
+
+      // 更新对应按钮样式
+      const btn = document.getElementById(`btn-like-${snsId}`);
+      if (btn) {
+        btn.className = "moments-act-btn liked";
+        btn.innerHTML = `<span>❤️</span><span>取消</span>`;
+        btn.title = "取消赞 (sns_unlike)";
+      }
+      updateMomentInteractionBox(m);
+
+      return { success: true };
+    }
+
     // 1. 朋友圈点赞 (sns_like) 与 2. 取消点赞 (sns_unlike)
     async function toggleMomentLike(snsId, toWxid) {
       const m = currentMomentsList.find(x => String(x.id) === String(snsId));
-      const isLiked = m ? !!m.isLiked : false;
-      const endpoint = isLiked ? '/api/wechat/moments/unlike' : '/api/wechat/moments/like';
-      const actionText = isLiked ? "取消点赞" : "点赞";
+      const isLiked = m ? !m.isLiked : false;
+
+      if (!isLiked) {
+        try {
+          await likeMomentItem(m, toWxid);
+          showToast("点赞成功", "success");
+        } catch (err) {
+          showToast("点赞失败: " + err.message, "danger");
+        }
+        return;
+      }
 
       try {
-        const res = await fetch(endpoint, {
+        const res = await fetch('/api/wechat/moments/unlike', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ snsId: snsId, toWxid: toWxid || (m ? m.toWxid : '') || '' })
         });
         const data = await res.json();
         if (!data || !data.success) {
-          throw new Error((data && data.message) || `${actionText}失败`);
+          throw new Error((data && data.message) || "取消点赞失败");
         }
 
-        showToast(`${actionText}成功`, isLiked ? "info" : "success");
+        showToast("取消点赞成功", "info");
 
         // 本地状态更新
         if (m) {
-          m.isLiked = !isLiked;
+          m.isLiked = false;
           if (!m.likes) m.likes = [];
-          const myName = myWxProfile.nickname || '我';
-          if (m.isLiked) {
-            if (!m.likes.includes(myName)) m.likes.push(myName);
-          } else {
-            m.likes = m.likes.filter(name => name !== myName && name !== '我');
-          }
+          const myName = (myWxProfile && myWxProfile.nickname) || '我';
+          m.likes = m.likes.filter(name => name !== myName && name !== '我');
 
           // 更新按钮样式
           const btn = document.getElementById(`btn-like-${snsId}`);
           if (btn) {
-            if (m.isLiked) {
-              btn.className = "moments-act-btn liked";
-              btn.innerHTML = `<span>❤️</span><span>取消</span>`;
-              btn.title = "取消赞 (sns_unlike)";
-            } else {
-              btn.className = "moments-act-btn";
-              btn.innerHTML = `<span>🤍</span><span>赞</span>`;
-              btn.title = "点赞 (sns_like)";
-            }
+            btn.className = "moments-act-btn";
+            btn.innerHTML = `<span>🤍</span><span>赞</span>`;
+            btn.title = "点赞 (sns_like)";
           }
           updateMomentInteractionBox(m);
         }
       } catch (err) {
-        showToast(`${actionText}失败: ` + err.message, "danger");
+        showToast("取消点赞失败: " + err.message, "danger");
+      }
+    }
+
+    // 批量点赞当前加载的所有朋友圈 (每个间隔 1 秒，sns_like)
+    let isBatchLiking = false;
+    let abortBatchLike = false;
+
+    async function batchLikeCurrentMoments() {
+      const btn = document.getElementById("btn-moments-batch-like");
+      const btnText = document.getElementById("btn-batch-like-text");
+
+      // 如果当前正在批量点赞中，再次点击则中止
+      if (isBatchLiking) {
+        abortBatchLike = true;
+        if (btnText) btnText.innerText = "停止中...";
+        showToast("正在停止批量点赞...", "info");
+        return;
+      }
+
+      if (!currentMomentsList || currentMomentsList.length === 0) {
+        showToast("当前暂无已加载的朋友圈动态", "warning");
+        return;
+      }
+
+      // 筛选当前尚未点赞的朋友圈
+      const toLikeList = currentMomentsList.filter(m => !m.isLiked);
+      if (toLikeList.length === 0) {
+        showToast(`当前加载的 ${currentMomentsList.length} 条朋友圈均已完成点赞`, "info");
+        return;
+      }
+
+      isBatchLiking = true;
+      abortBatchLike = false;
+
+      if (btn) {
+        btn.classList.add("liking");
+        btn.title = "点击可停止批量点赞";
+      }
+
+      showToast(`开始逐个点赞当前未点赞的 ${toLikeList.length} 条朋友圈 (每个间隔 1 秒)...`, "info");
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < toLikeList.length; i++) {
+        if (abortBatchLike) {
+          showToast(`已停止批量点赞，共完成 ${successCount} 条`, "info");
+          break;
+        }
+
+        const m = toLikeList[i];
+        if (btnText) {
+          btnText.innerText = `点赞 (${i + 1}/${toLikeList.length})`;
+        }
+
+        // 高亮并平滑定位当前卡片
+        const card = document.getElementById(`moment-card-${m.id}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          card.style.transition = 'box-shadow 0.3s ease';
+          card.style.boxShadow = '0 0 0 2px #f43f5e';
+        }
+
+        try {
+          await likeMomentItem(m);
+          successCount++;
+        } catch (err) {
+          failCount++;
+          console.warn(`点赞朋友圈 [${m.id}] 失败:`, err);
+        } finally {
+          if (card) {
+            setTimeout(() => {
+              card.style.boxShadow = '';
+            }, 800);
+          }
+        }
+
+        // 每一个点赞之间间隔一秒再点赞下一个
+        if (i < toLikeList.length - 1 && !abortBatchLike) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      isBatchLiking = false;
+      abortBatchLike = false;
+
+      if (btn) {
+        btn.classList.remove("liking");
+        btn.title = "逐个点赞当前已加载的所有朋友圈 (sns_like，每个间隔1秒)";
+      }
+      if (btnText) {
+        btnText.innerText = "点赞";
+      }
+
+      if (successCount > 0 || failCount > 0) {
+        showToast(`批量点赞结束: 成功 ${successCount} 条${failCount > 0 ? `，失败 ${failCount} 条` : ''}`, successCount > 0 ? "success" : "warning");
       }
     }
 
@@ -3652,6 +3910,7 @@
     // 3. 选中某个好友加载详情 (聊天、朋友圈、AI意向分析)
     async function selectContact(index) {
       if (index < 0 || index >= contactsList.length) return;
+      clearMomentsCooldown();
       isHomeTimelineMode = false;
       currentIndex = index;
       const contact = contactsList[currentIndex];
